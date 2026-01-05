@@ -5,7 +5,9 @@
 **Your approach is perfect!** Here's why this hybrid workflow is ideal:
 
 ### ✅ VS Code (Local Development)
+
 **Best for:**
+
 - 💻 **All Code Development**: Models, data loaders, utilities
 - 🏗️ **Project Structure**: Organizing files and modules
 - 🔧 **Configuration**: Managing config files
@@ -17,13 +19,16 @@
 - 🐛 **Debugging**: Better debugging tools than Colab
 
 **With GitHub Copilot:**
+
 - Auto-complete code
 - Generate boilerplate
 - Fix bugs quickly
 - Write tests faster
 
 ### ✅ Google Colab (Cloud Training)
+
 **Best for:**
+
 - 🚀 **Teacher Model Training**: Free Tesla T4 GPU (~15GB VRAM)
 - 🔥 **Knowledge Distillation**: Heavy training workloads
 - 🎨 **Grad-CAM at Scale**: Generate heatmaps for entire dataset
@@ -32,12 +37,14 @@
 - 📈 **Experiments**: Quick iteration with GPU access
 
 **Colab Benefits:**
+
 - Free GPU access (up to 12 hours continuous)
 - No local GPU needed
 - Easy to share results
 - Pre-installed PyTorch/TensorFlow
 
 ### ❌ Avoid (As You Noted)
+
 - ❌ **All-in Colab**: Hard to manage, no proper IDE, messy files
 - ❌ **Local CPU Training**: Teacher training would take days/weeks
 - ❌ **No Version Control**: Risk losing work, can't collaborate
@@ -97,6 +104,7 @@
 ### Phase 1: Set Up GitHub (Do This First!)
 
 #### 1.1 Initialize Git (if not done)
+
 ```bash
 cd c:\Users\Asus\x-lite-chest-xray
 git init
@@ -105,6 +113,7 @@ git commit -m "Initial commit: X-Lite project structure"
 ```
 
 #### 1.2 Create GitHub Repository
+
 ```bash
 # Go to github.com/dinethsadee01 and create new repo: X-Lite
 
@@ -115,8 +124,10 @@ git push -u origin main
 ```
 
 #### 1.3 Add .gitignore for Large Files
+
 Already configured! The `.gitignore` excludes:
-- ✅ Model checkpoints (*.pth, *.pt)
+
+- ✅ Model checkpoints (_.pth, _.pt)
 - ✅ Dataset images
 - ✅ Logs and cache
 - ✅ Virtual environment
@@ -126,6 +137,7 @@ Already configured! The `.gitignore` excludes:
 ### Phase 2: Create Colab-Ready Notebooks
 
 We'll create special notebooks that:
+
 1. Clone your GitHub repo
 2. Install dependencies
 3. Load data from Google Drive
@@ -133,6 +145,7 @@ We'll create special notebooks that:
 5. Save results back to Drive
 
 **Structure:**
+
 ```
 notebooks/
 ├── colab/                          # Colab-specific notebooks
@@ -194,12 +207,14 @@ drive.mount('/content/drive')
 ### Use Case 1: Train Teacher Model
 
 **VS Code (Preparation):**
+
 1. Write `ml/models/teacher_model.py`
 2. Write `ml/training/teacher_trainer.py`
 3. Test on 100 images locally
 4. Push to GitHub
 
 **Colab (Training):**
+
 1. Open `notebooks/colab/01_train_teacher.ipynb`
 2. Clone repo, install deps
 3. Upload dataset to Google Drive (one-time)
@@ -208,6 +223,7 @@ drive.mount('/content/drive')
 6. Download results
 
 **VS Code (Integration):**
+
 1. Download checkpoint from Drive
 2. Place in `ml/models/checkpoints/`
 3. Test inference locally
@@ -216,11 +232,13 @@ drive.mount('/content/drive')
 ### Use Case 2: Generate Grad-CAM Heatmaps
 
 **VS Code:**
+
 1. Write `ml/inference/explainability.py`
 2. Test on 1 image
 3. Push to GitHub
 
 **Colab:**
+
 1. Clone repo
 2. Load trained model
 3. Generate heatmaps for 1000s of images (GPU accelerated)
@@ -228,18 +246,21 @@ drive.mount('/content/drive')
 5. Download selected heatmaps
 
 **VS Code:**
+
 1. Integrate heatmap generation in backend
 2. Test with frontend
 
 ### Use Case 3: Hyperparameter Tuning
 
 **Colab:**
+
 1. Try different temperatures [2, 4, 6, 8]
 2. Try different alphas [0.5, 0.7, 0.9]
 3. Log results to TensorBoard
 4. Download best configuration
 
 **VS Code:**
+
 1. Update `config/config.py` with best values
 2. Commit to GitHub
 
@@ -276,6 +297,7 @@ files.download('ml/models/checkpoints/teacher_best.pth')
 ## 🛠️ Tools Setup
 
 ### VS Code Extensions (Already Recommended)
+
 - ✅ Python
 - ✅ Pylance
 - ✅ GitHub Copilot
@@ -283,6 +305,7 @@ files.download('ml/models/checkpoints/teacher_best.pth')
 - ✅ GitLens
 
 ### Colab Settings
+
 - Enable GPU: Runtime → Change runtime type → GPU → T4
 - Increase RAM: Runtime → Change runtime type → High-RAM (if needed)
 
@@ -290,18 +313,19 @@ files.download('ml/models/checkpoints/teacher_best.pth')
 
 ## 📊 Resource Allocation
 
-| Task | Environment | Time | GPU |
-|------|-------------|------|-----|
-| Code Development | VS Code | 60% | ❌ |
-| Teacher Training | Colab | 20% | ✅ |
-| Student Training | Colab | 10% | ✅ |
-| Backend/Frontend | VS Code | 10% | ❌ |
+| Task             | Environment | Time | GPU |
+| ---------------- | ----------- | ---- | --- |
+| Code Development | VS Code     | 60%  | ❌  |
+| Teacher Training | Colab       | 20%  | ✅  |
+| Student Training | Colab       | 10%  | ✅  |
+| Backend/Frontend | VS Code     | 10%  | ❌  |
 
 ---
 
 ## 💡 Pro Tips
 
 ### 1. Dataset Management
+
 ```bash
 # Upload dataset to Google Drive once
 # In Colab, create symlink
@@ -309,18 +333,21 @@ files.download('ml/models/checkpoints/teacher_best.pth')
 ```
 
 ### 2. Checkpoint Management
+
 ```python
 # Save checkpoints periodically
-torch.save(model.state_dict(), 
+torch.save(model.state_dict(),
            f'/content/drive/MyDrive/X-Lite/checkpoints/teacher_epoch_{epoch}.pth')
 ```
 
 ### 3. Experiment Tracking
+
 - Use Weights & Biases (free, integrates with Colab)
 - Access results from anywhere
 - Compare experiments easily
 
 ### 4. Code Sync
+
 ```bash
 # In Colab, pull latest changes
 !git pull origin main
@@ -334,12 +361,14 @@ git push origin main
 ## 🚨 Important Notes
 
 ### Colab Limitations
+
 - **Session Timeout**: 12 hours max (90 min idle)
 - **Solution**: Save checkpoints every epoch
 - **GPU Quota**: Limited daily usage
 - **Solution**: Use efficiently, train overnight
 
 ### Data Privacy
+
 - Don't commit large files to GitHub
 - Don't commit API keys or secrets
 - Use `.env` files (already in `.gitignore`)
@@ -349,6 +378,7 @@ git push origin main
 ## ✅ Next Actions
 
 1. **Initialize Git** (if not done)
+
    ```bash
    git init
    git add .
@@ -356,11 +386,13 @@ git push origin main
    ```
 
 2. **Create GitHub Repo**
+
    - Go to github.com
    - Create "X-Lite" repository
    - Push code
 
 3. **Set Up Google Drive Folder**
+
    - Create `X-Lite` folder
    - Create subfolders: `checkpoints`, `data`, `results`
 

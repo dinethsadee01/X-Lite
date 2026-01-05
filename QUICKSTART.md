@@ -5,6 +5,7 @@ Before you begin development, complete these steps:
 ## ✅ Initial Setup (One-time)
 
 ### 1. Environment Setup
+
 ```powershell
 # Navigate to project
 cd c:\Users\Asus\x-lite-chest-xray
@@ -17,6 +18,7 @@ python --version  # Should be 3.8+
 ```
 
 ### 2. Initialize Git (If not done)
+
 ```powershell
 # Initialize repository
 git init
@@ -29,6 +31,7 @@ git commit -m "Initial commit: X-Lite project structure"
 ```
 
 ### 3. Create GitHub Repository
+
 ```powershell
 # Go to https://github.com/dinethsadee01
 # Click "New Repository"
@@ -44,6 +47,7 @@ git push -u origin main
 ```
 
 ### 4. Set Up Google Drive Structure
+
 ```
 Create folders in Google Drive:
 My Drive/
@@ -60,6 +64,7 @@ My Drive/
 ### VS Code (Local) - Daily Work
 
 #### For Code Development:
+
 ```powershell
 # 1. Open project in VS Code
 code .
@@ -81,8 +86,9 @@ git push origin main
 ### Google Colab - For Training
 
 #### For GPU Training:
+
 1. **Open Colab**: https://colab.research.google.com/
-2. **Upload Notebook**: 
+2. **Upload Notebook**:
    - File → Upload → `notebooks/colab/00_colab_setup.ipynb`
    - Or connect to GitHub (easier for updates)
 3. **Run Setup**: Execute all cells in `00_colab_setup.ipynb`
@@ -122,23 +128,28 @@ git push origin main
 ## 📂 Important File Locations
 
 **Configuration:**
+
 - `config/config.py` - All hyperparameters
 - `config/disease_labels.py` - Disease classes
 
 **Data:**
+
 - `ml/data/loader.py` - Dataset loader
 - `ml/data/preprocessing.py` - Image transforms
 - `ml/data/augmentation.py` - Data augmentation
 
 **Models:** (To implement)
+
 - `ml/models/teacher_model.py`
 - `ml/models/student_model.py`
 
 **Backend:**
+
 - `backend/app.py` - FastAPI application
 - `backend/routes/` - API endpoints
 
 **Documentation:**
+
 - `docs/SETUP.md` - Detailed setup guide
 - `docs/WORKFLOW.md` - VS Code + Colab workflow
 - `notebooks/README.md` - Notebook usage guide
@@ -148,6 +159,7 @@ git push origin main
 ## 🆘 Quick Commands Reference
 
 ### Git Commands
+
 ```bash
 git status                    # Check status
 git add .                     # Stage all changes
@@ -157,6 +169,7 @@ git pull origin main          # Pull latest changes
 ```
 
 ### Python/Jupyter
+
 ```bash
 jupyter notebook              # Start Jupyter
 python backend/app.py         # Run backend
@@ -164,6 +177,7 @@ python scripts/train_teacher.py  # Train teacher (local)
 ```
 
 ### Package Management
+
 ```bash
 pip install -r requirements.txt   # Install dependencies
 pip list                          # List installed packages
@@ -185,6 +199,7 @@ pip freeze > requirements.txt     # Update requirements
 ## 📞 Need Help?
 
 Check these resources:
+
 - `GETTING_STARTED.md` - Comprehensive guide
 - `docs/SETUP.md` - Installation details
 - `docs/WORKFLOW.md` - Development workflow

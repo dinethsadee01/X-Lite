@@ -20,6 +20,7 @@ notebooks/
 **Purpose**: Development, testing, and exploration on your local machine
 
 **When to use:**
+
 - ✅ Quick prototyping and code testing
 - ✅ Data exploration and visualization
 - ✅ Debugging models and utilities
@@ -27,9 +28,11 @@ notebooks/
 - ✅ Backend/frontend integration
 
 **Notebooks:**
+
 - `00_quick_start.ipynb` - Verify installation, explore configuration
 
 **To run:**
+
 ```bash
 cd c:\Users\Asus\x-lite-chest-xray
 jupyter notebook notebooks/local/
@@ -42,6 +45,7 @@ jupyter notebook notebooks/local/
 **Purpose**: GPU-accelerated training and large-scale computations
 
 **When to use:**
+
 - ✅ Training teacher model (requires GPU)
 - ✅ Training student models
 - ✅ Knowledge distillation experiments
@@ -50,6 +54,7 @@ jupyter notebook notebooks/local/
 - ✅ Large-scale inference
 
 **Notebooks:**
+
 - `00_colab_setup.ipynb` - Set up Colab environment (run this first!)
 - `01_train_teacher.ipynb` - Train DenseNet121 teacher (coming soon)
 - `02_train_student.ipynb` - Train student models (coming soon)
@@ -57,6 +62,7 @@ jupyter notebook notebooks/local/
 - `04_gradcam_generation.ipynb` - Generate heatmaps (coming soon)
 
 **To run:**
+
 1. Push your code to GitHub
 2. Open [Google Colab](https://colab.research.google.com/)
 3. File → Upload notebook → Browse to `notebooks/colab/`
@@ -67,6 +73,7 @@ jupyter notebook notebooks/local/
 ## 🔄 Typical Workflow
 
 ### 1. Local Development (VS Code)
+
 ```
 1. Write model code in ml/models/
 2. Test with local/00_quick_start.ipynb
@@ -75,6 +82,7 @@ jupyter notebook notebooks/local/
 ```
 
 ### 2. Cloud Training (Colab)
+
 ```
 1. Open colab/00_colab_setup.ipynb
 2. Mount Drive, clone repo, install deps
@@ -84,6 +92,7 @@ jupyter notebook notebooks/local/
 ```
 
 ### 3. Integration (VS Code)
+
 ```
 1. Download checkpoints from Drive
 2. Test inference locally
@@ -95,28 +104,30 @@ jupyter notebook notebooks/local/
 
 ## 📊 Notebook Comparison
 
-| Feature | Local Notebooks | Colab Notebooks |
-|---------|----------------|-----------------|
-| **Environment** | VS Code | Google Colab |
-| **GPU Access** | If available | Free T4/P100/V100 |
-| **Session Length** | Unlimited | 12 hours max |
-| **Best For** | Development | Training |
-| **Data Storage** | Local disk | Google Drive |
-| **Code Editing** | Excellent (Copilot) | Basic |
-| **Debugging** | Excellent | Limited |
-| **Collaboration** | Git | Share link |
+| Feature            | Local Notebooks     | Colab Notebooks   |
+| ------------------ | ------------------- | ----------------- |
+| **Environment**    | VS Code             | Google Colab      |
+| **GPU Access**     | If available        | Free T4/P100/V100 |
+| **Session Length** | Unlimited           | 12 hours max      |
+| **Best For**       | Development         | Training          |
+| **Data Storage**   | Local disk          | Google Drive      |
+| **Code Editing**   | Excellent (Copilot) | Basic             |
+| **Debugging**      | Excellent           | Limited           |
+| **Collaboration**  | Git                 | Share link        |
 
 ---
 
 ## 💡 Tips
 
 ### Local Notebooks
+
 - Use for rapid iteration and testing
 - Keep datasets small for faster loading
 - Leverage GitHub Copilot for code generation
 - Use for backend/frontend development
 
 ### Colab Notebooks
+
 - Always run `00_colab_setup.ipynb` first
 - Save checkpoints every epoch (to Drive)
 - Monitor session time (12 hour limit)
@@ -130,6 +141,7 @@ jupyter notebook notebooks/local/
 **First time setup:**
 
 1. **Local**: Run `notebooks/local/00_quick_start.ipynb`
+
    - Verify installation
    - Check configuration
    - Understand project structure
@@ -141,6 +153,7 @@ jupyter notebook notebooks/local/
    - Install dependencies
 
 **Then proceed to:**
+
 - Data exploration and preprocessing
 - Model training and evaluation
 - Application development
