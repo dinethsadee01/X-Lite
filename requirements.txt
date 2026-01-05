@@ -1,0 +1,60 @@
+# Deep Learning & ML
+torch>=2.0.0
+torchvision>=0.15.0
+timm>=0.9.0                    # PyTorch Image Models (EfficientNet, ConvNeXt, etc.)
+einops>=0.7.0                  # Tensor operations for transformers
+performer-pytorch>=1.1.4       # Performer attention mechanism
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+albumentations>=1.3.0          # Advanced image augmentation
+
+# Visualization & Metrics
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.14.0
+scikit-image>=0.21.0
+grad-cam>=1.4.8                # Grad-CAM visualization
+
+# Training & Experiment Tracking
+tqdm>=4.65.0
+tensorboard>=2.13.0
+wandb>=0.15.0                  # Weights & Biases (optional)
+pytorch-lightning>=2.0.0       # Training framework (optional)
+
+# Backend (Web API)
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6        # File upload support
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Database
+sqlalchemy>=2.0.0
+alembic>=1.11.0
+
+# Report Generation
+reportlab>=4.0.0               # PDF generation
+jinja2>=3.1.0
+
+# Utilities
+PyYAML>=6.0
+python-json-logger>=2.0.0
+requests>=2.31.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# Code Quality
+black>=23.0.0
+flake8>=6.0.0
+isort>=5.12.0
+
+# Deployment
+gunicorn>=21.0.0               # WSGI server for production
