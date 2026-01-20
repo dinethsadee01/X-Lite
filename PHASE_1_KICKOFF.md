@@ -9,7 +9,9 @@
 ## 🎯 What We Just Created
 
 ### 1. **EDA Notebook** (`notebooks/local/01_data_exploration.ipynb`)
+
 Comprehensive exploratory data analysis covering:
+
 - ✅ Dataset statistics (112,120 images, 14 diseases)
 - ✅ Class distribution analysis
 - ✅ Class imbalance metrics (20:1 ratio, Gini coefficient)
@@ -26,7 +28,9 @@ Comprehensive exploratory data analysis covering:
 ---
 
 ### 2. **Design Document** (`docs/DESIGN.md`)
+
 Complete technical specification including:
+
 - Problem statement + class imbalance quantification
 - Proposed architecture (student + teacher + KD)
 - Data preprocessing strategy (augmentation, class balancing)
@@ -42,7 +46,9 @@ Complete technical specification including:
 ---
 
 ### 3. **Experiment Tracking Template** (`experiments/TRACKING.md`)
+
 Structured framework for logging all training runs:
+
 - CSV format for easy analysis
 - Phase-by-phase tracking (baseline → KD → final)
 - Ablation study templates
@@ -55,7 +61,9 @@ Structured framework for logging all training runs:
 ---
 
 ### 4. **Phase 1 Roadmap** (`PHASE_1_ROADMAP.md`)
+
 Detailed 7-day execution plan:
+
 - ✅ Completed items (infrastructure, dataset, docs)
 - 🚀 Next steps (EDA, data loader, baselines)
 - 📊 Success criteria (AUC >0.80, <500ms inference)
@@ -70,6 +78,7 @@ Detailed 7-day execution plan:
 ## ✨ Key Insights from Design Phase
 
 ### Class Imbalance Challenge
+
 ```
 "No Finding":  ~60% of dataset (67K images)
 Disease range: 1.3% (Pneumonia) - 19% (Infiltration)
@@ -80,6 +89,7 @@ Solution: Class weights + balanced sampling + focal loss
 ```
 
 ### Data-Driven Decisions
+
 - **Why stratified split?** Ensures each fold has same disease distribution
 - **Why class weights?** Inverse frequency compensates for imbalance
 - **Why augmentation?** Improves generalization on minority classes
@@ -90,17 +100,20 @@ Solution: Class weights + balanced sampling + focal loss
 ## 📋 Ready-to-Execute Checklist
 
 ### Environment
+
 - ✅ Python 3.13.1 (.venv)
 - ✅ PyTorch 2.9.1+cpu
 - ✅ All dependencies installed
 - ✅ GPU available (RTX 4070, 16GB VRAM)
 
 ### Dataset
+
 - ✅ Metadata CSV: `data/Data_Entry_2017.csv` (112,120 records)
 - ✅ Images: `data/raw/images/` (112,120 X-rays, 45GB)
 - ✅ Ready for analysis
 
 ### Code
+
 - ✅ EDA notebook ready (`01_data_exploration.ipynb`)
 - ✅ Data loader implemented (`ml/data/loader.py`)
 - ✅ Preprocessing ready (`ml/data/preprocessing.py`)
@@ -108,6 +121,7 @@ Solution: Class weights + balanced sampling + focal loss
 - ✅ Config system working (`config/config.py`)
 
 ### Documentation
+
 - ✅ Design doc complete (`docs/DESIGN.md`)
 - ✅ Roadmap ready (`PHASE_1_ROADMAP.md`)
 - ✅ Tracking template set up (`experiments/TRACKING.md`)
@@ -125,6 +139,7 @@ jupyter notebook notebooks/local/01_data_exploration.ipynb
 ```
 
 **Execute cells in order:**
+
 1. Setup & imports
 2. Load metadata
 3. Dataset statistics
@@ -141,6 +156,7 @@ jupyter notebook notebooks/local/01_data_exploration.ipynb
 14. Summary & findings
 
 **Expected output**:
+
 - New files: `data/splits/{train,val,test}.csv` ✓
 - Visualizations: `results/{01_eda_overview.png, 02_sample_images.png}`
 - Report: `docs/EDA_REPORT.md`
@@ -150,11 +166,13 @@ jupyter notebook notebooks/local/01_data_exploration.ipynb
 ### Step 2: Review EDA Results (15 minutes)
 
 Check the generated report:
+
 ```bash
 cat docs/EDA_REPORT.md
 ```
 
 Key questions to verify:
+
 - [ ] Does train/val/test split look balanced?
 - [ ] Are class weights computed correctly?
 - [ ] Do sample images look reasonable?
@@ -167,6 +185,7 @@ Key questions to verify:
 **File**: `ml/data/loader.py`
 
 What needs updating:
+
 ```python
 # Use stratified splits instead of raw CSV
 train_df = pd.read_csv('data/splits/train.csv')
@@ -207,13 +226,14 @@ git push origin master
 ✅ Working data pipeline with augmentation  
 ✅ Class weights for loss function  
 ✅ Train/val/test splits ready for training  
-✅ Baseline for model comparison  
+✅ Baseline for model comparison
 
 ---
 
 ## 🎓 Research Best Practices Applied
 
 This setup demonstrates:
+
 - ✅ **Rigorous EDA** before modeling
 - ✅ **Stratified splits** for valid evaluation
 - ✅ **Class imbalance handling** with weights + sampling
@@ -288,12 +308,14 @@ Total: ~40-44 hours work
 After completing each phase, verify:
 
 **Phase 1 Complete When**:
+
 - ✅ `data/splits/` folder has 3 CSV files
 - ✅ EDA visualizations saved
 - ✅ Data loader works with balanced batches
 - ✅ All code committed to git
 
 **Phase 2 Start Only After**:
+
 - ✅ Phase 1 100% complete
 - ✅ Ready to train baseline student
 
@@ -302,6 +324,7 @@ After completing each phase, verify:
 ## 🏁 Final Notes
 
 You now have:
+
 1. ✅ A comprehensive EDA notebook ready to run
 2. ✅ A detailed design document for reference
 3. ✅ A structured experiment tracking system
@@ -326,5 +349,4 @@ Execute cell by cell and watch the insights emerge. You'll have all the data ana
 
 **Created**: January 21, 2026 22:15 UTC  
 **Status**: ✅ READY  
-**Next Update**: After EDA completion  
-
+**Next Update**: After EDA completion
