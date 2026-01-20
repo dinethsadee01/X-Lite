@@ -74,11 +74,13 @@ def extract_tar_gz(tar_path: Path, extract_to: Path):
         tar.extractall(path=extract_to)
     print(f"Extracted to {extract_to}")
 
-
 def download_dataset(
     output_dir: Path = None,
     download_images: bool = True,
-    download_metadata: bool = True
+    download_metadata: bool = True,
+    parts: list[int] | None = None,
+    force: bool = False,
+    cleanup: bool = True,
 ):
     """
     Download ChestX-ray14 dataset
@@ -115,29 +117,41 @@ def download_dataset(
     if download_images:
         print("\n[2/2] Downloading image archives...")
         print("Warning: Total size ~45GB. This may take several hours.")
-        
-        for i in range(1, 13):  # 12 image archives
+
+        part_list = parts if parts else list(range(1, 13))
+        for i in part_list:
             archive_name = f'images_{i:03d}'
             archive_path = output_dir / f'{archive_name}.tar.gz'
-            
-            if archive_path.exists():
-                print(f"\n✓ {archive_name} already downloaded")
+            extracted_dir = output_dir / archive_name
+
+            # Skip if already extracted and not forcing
+            if extracted_dir.exists() and any(extracted_dir.rglob("*.png")) and not force:
+                print(f"\n✓ {archive_name} already extracted - skipping")
                 continue
-            
+
+            # If archive exists but not extracted/force re-extract
+            if archive_path.exists() and (force or not extracted_dir.exists()):
+                print(f"\n→ Extracting existing {archive_path.name}...")
+                extract_tar_gz(archive_path, output_dir)
+                if cleanup:
+                    try: archive_path.unlink()
+                    except Exception: pass
+                continue
+
             print(f"\n[{i}/12] Downloading {archive_name}...")
             try:
+                if archive_path.exists() and force:
+                    archive_path.unlink()
+
                 download_file(
                     DATASET_URLS[archive_name],
                     archive_path,
                     desc=f"{archive_name}"
                 )
-                
-                # Extract archive
                 extract_tar_gz(archive_path, output_dir)
-                
-                # Optionally remove archive after extraction to save space
-                # archive_path.unlink()
-                
+                if cleanup:
+                    try: archive_path.unlink()
+                    except Exception: pass
             except Exception as e:
                 print(f"✗ Error downloading {archive_name}: {e}")
                 continue
@@ -152,8 +166,7 @@ def download_dataset(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Download ChestX-ray14 dataset'
+    parser = argparse.ArgumentParser(description='Download ChestX-ray14 dataset'
     )
     parser.add_argument(
         '--output-dir',
@@ -171,20 +184,29 @@ def main():
         action='store_true',
         help='Download only images (no metadata)'
     )
-    
+    parser.add_argument(
+        '--parts', type=int, nargs='+', help='Only download specified parts (e.g., --parts 11 12)'
+    )
+    parser.add_argument(
+        '--force', action='store_true', help='Re-download/re-extract even if present'
+    )
+    parser.add_argument(
+        '--no-cleanup', action='store_true', help='Keep .tar.gz archives after extraction'
+    )
     args = parser.parse_args()
-    
+
     download_images = not args.metadata_only
     download_metadata = not args.images_only
-    
-    # Create directories
+
     Config.create_directories()
-    
-    # Download dataset
+
     download_dataset(
         output_dir=args.output_dir,
         download_images=download_images,
-        download_metadata=download_metadata
+        download_metadata=download_metadata,
+        parts=args.parts,
+        force=args.force,
+        cleanup=not args.no_cleanup,
     )
 
 

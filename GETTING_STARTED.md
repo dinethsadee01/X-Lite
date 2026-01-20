@@ -282,4 +282,4 @@ This is a **research project** - experimentation is key! Don't hardcode values, 
 
 _Last Updated: January 5, 2026_
 _Project: X-Lite - Lightweight Hybrid CNN-Transformer for Chest X-Ray Classification_
-_Author: Dineth Sadee_
+_Author: Dineth Sadeepa_

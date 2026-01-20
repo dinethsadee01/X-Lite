@@ -18,7 +18,7 @@ class Config:
     LOGS_DIR = ROOT_DIR / 'logs'
     
     # Dataset metadata
-    METADATA_CSV = DATA_DIR / 'metadata.csv'
+    METADATA_CSV = DATA_DIR / 'Data_Entry_2017.csv'
     
     # ============= Dataset Settings =============
     DATASET_NAME = 'ChestX-ray14'

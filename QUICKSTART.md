@@ -101,9 +101,9 @@ git push origin main
 ### This Week:
 
 - [x] ✅ Install dependencies (DONE!)
-- [ ] 📝 Initialize Git repository
-- [ ] 🌐 Create GitHub repository and push code
-- [ ] ☁️ Set up Google Drive folders
+- [x] 📝 Initialize Git repository
+- [x] 🌐 Create GitHub repository and push code
+- [x] ☁️ Set up Google Drive folders
 - [ ] 📓 Run `notebooks/local/00_quick_start.ipynb`
 - [ ] 🔬 Run `notebooks/colab/00_colab_setup.ipynb` (in Colab)
 

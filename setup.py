@@ -13,7 +13,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 setup(
     name="x-lite",
     version="0.1.0",
-    author="Dineth Sadee",
+    author="Dineth Sadeepa",
     description="Lightweight Hybrid CNN-Transformer for Chest X-Ray Classification",
     long_description=long_description,
     long_description_content_type="text/markdown",
