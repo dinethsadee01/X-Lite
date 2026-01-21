@@ -9,7 +9,7 @@ import numpy as np
 from pathlib import Path
 from PIL import Image
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from typing import Tuple, Optional, Dict, List
 
 from config import DISEASE_LABELS, NUM_CLASSES
@@ -66,7 +66,16 @@ class ChestXrayDataset(Dataset):
         
         # Apply transformations
         if self.transform:
-            image = self.transform(image)
+            # Check if Albumentations or torchvision transforms
+            if hasattr(self.transform, '__module__') and 'albumentations' in self.transform.__module__:
+                # Albumentations: needs numpy array with named argument
+                import numpy as np
+                image_np = np.array(image)
+                transformed = self.transform(image=image_np)
+                image = transformed['image']
+            else:
+                # Torchvision transforms: works with PIL
+                image = self.transform(image)
         
         # Parse labels (multi-hot encoding)
         label_vector = self._parse_labels(row['labels'])
@@ -277,3 +286,154 @@ def get_class_weights(labels_df: pd.DataFrame) -> torch.Tensor:
     weights = weights / weights.sum() * NUM_CLASSES  # Normalize
     
     return torch.tensor(weights, dtype=torch.float32)
+
+
+def get_sample_weights(labels_df: pd.DataFrame) -> np.ndarray:
+    """
+    Calculate per-sample weights for WeightedRandomSampler
+    Samples with rare diseases get higher weights
+    
+    Args:
+        labels_df (pd.DataFrame): DataFrame with labels
+    
+    Returns:
+        np.ndarray: Sample weights of shape (num_samples,)
+    """
+    # Calculate class frequencies
+    label_counts = np.zeros(NUM_CLASSES)
+    for label_str in labels_df['labels']:
+        if pd.isna(label_str) or label_str == 'No Finding':
+            continue
+        labels = label_str.split('|')
+        for label in labels:
+            label = label.strip()
+            if label in DISEASE_LABELS:
+                idx = DISEASE_LABELS.index(label)
+                label_counts[idx] += 1
+    
+    # Inverse frequency per class
+    class_weights = 1.0 / (label_counts + 1.0)
+    
+    # Calculate weight for each sample (max weight of its diseases)
+    sample_weights = []
+    for label_str in labels_df['labels']:
+        if pd.isna(label_str) or label_str == 'No Finding':
+            sample_weights.append(1.0)  # Normal case gets baseline weight
+            continue
+        
+        labels = label_str.split('|')
+        max_weight = 0.0
+        for label in labels:
+            label = label.strip()
+            if label in DISEASE_LABELS:
+                idx = DISEASE_LABELS.index(label)
+                max_weight = max(max_weight, class_weights[idx])
+        
+        sample_weights.append(max_weight if max_weight > 0 else 1.0)
+    
+    return np.array(sample_weights)
+
+
+def get_balanced_data_loaders(
+    data_dir: str,
+    train_split_csv: str,
+    val_split_csv: str,
+    test_split_csv: str,
+    train_transform,
+    val_transform,
+    batch_size: int = 32,
+    num_workers: int = 4,
+    pin_memory: bool = True,
+    use_weighted_sampler: bool = True
+) -> Dict[str, DataLoader]:
+    """
+    Create DataLoaders with stratified splits and optional weighted sampling
+    
+    Args:
+        data_dir (str): Path to image directory
+        train_split_csv (str): Path to train split CSV (from EDA)
+        val_split_csv (str): Path to validation split CSV
+        test_split_csv (str): Path to test split CSV
+        train_transform: Transformations for training data
+        val_transform: Transformations for validation/test data
+        batch_size (int): Batch size
+        num_workers (int): Number of workers for data loading
+        pin_memory (bool): Pin memory for faster GPU transfer
+        use_weighted_sampler (bool): Use WeightedRandomSampler for balanced batches
+    
+    Returns:
+        dict: Dictionary with 'train', 'val', 'test' DataLoaders
+    """
+    # Load stratified splits
+    train_df = pd.read_csv(train_split_csv)
+    val_df = pd.read_csv(val_split_csv)
+    test_df = pd.read_csv(test_split_csv)
+    
+    print(f"Loaded stratified splits:")
+    print(f"  Train: {len(train_df):,} samples")
+    print(f"  Val:   {len(val_df):,} samples")
+    print(f"  Test:  {len(test_df):,} samples")
+    
+    # Rename columns if needed (EDA notebook uses 'Image Index', 'Finding Labels')
+    if 'Image Index' in train_df.columns:
+        train_df = train_df.rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'})
+        val_df = val_df.rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'})
+        test_df = test_df.rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'})
+    
+    # Create datasets
+    train_dataset = ChestXrayDataset(
+        data_dir, train_df, transform=train_transform, is_training=True
+    )
+    val_dataset = ChestXrayDataset(
+        data_dir, val_df, transform=val_transform, is_training=False
+    )
+    test_dataset = ChestXrayDataset(
+        data_dir, test_df, transform=val_transform, is_training=False
+    )
+    
+    # Create weighted sampler for training if requested
+    if use_weighted_sampler:
+        print("\n✓ Using WeightedRandomSampler for balanced batches")
+        sample_weights = get_sample_weights(train_df)
+        sampler = WeightedRandomSampler(
+            weights=sample_weights,
+            num_samples=len(sample_weights),
+            replacement=True  # Allow oversampling minority classes
+        )
+        shuffle = False  # Sampler handles shuffling
+    else:
+        sampler = None
+        shuffle = True
+    
+    # Create dataloaders
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        sampler=sampler,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=True  # Drop incomplete batches for training
+    )
+    
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory
+    )
+    
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory
+    )
+    
+    return {
+        'train': train_loader,
+        'val': val_loader,
+        'test': test_loader
+    }
