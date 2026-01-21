@@ -1,10 +1,25 @@
 """
-Model architectures package
-Contains teacher, student models and components
+Model architectures package.
+
+Teacher models will be added later; only student models are implemented now.
+We export the student model factory and configs without importing nonexistent
+TeacherModel or StudentModel symbols.
 """
 
-from .student_model import StudentModel
+from .student_model import (
+	create_student_model,
+	MODEL_CONFIGS,
+	HybridStudentModel,
+	StudentClassificationHead,
+	MultiHeadSelfAttention,
+	PerformerAttention,
+)
 
-# TeacherModel will be added in Phase 3 (Day 4) for knowledge distillation
-
-__all__ = ['StudentModel']
+__all__ = [
+	'create_student_model',
+	'MODEL_CONFIGS',
+	'HybridStudentModel',
+	'StudentClassificationHead',
+	'MultiHeadSelfAttention',
+	'PerformerAttention',
+]

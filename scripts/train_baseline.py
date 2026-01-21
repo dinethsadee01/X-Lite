@@ -180,12 +180,12 @@ def train_single_model(
     )
     
     # Learning rate scheduler
+    # torch 2.4+ ReduceLROnPlateau signature drops the 'verbose' kwarg
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         trainer.optimizer,
         mode='max',
         factor=0.5,
-        patience=5,
-        verbose=True
+        patience=5
     )
     
     # Train
@@ -254,6 +254,8 @@ def main():
     val_transform = get_medical_transforms(use_clahe=True, use_denoising=False)
     
     # Create full data loaders
+    # Note: num_workers=0 because cv2.CLAHE cannot be pickled for multiprocessing
+    # On RTX 4070, single-threaded data loading is still fast enough
     loaders = get_balanced_data_loaders(
         data_dir=str(data_dir),
         train_split_csv=str(train_csv),
@@ -262,7 +264,7 @@ def main():
         train_transform=train_aug,
         val_transform=val_transform,
         batch_size=32,
-        num_workers=4,
+        num_workers=0,
         use_weighted_sampler=True
     )
     
@@ -308,28 +310,33 @@ def main():
     results_df = pd.DataFrame(all_results)
     results_path = results_dir / "baseline_results.csv"
     results_df.to_csv(results_path, index=False)
-    
+
     # Print summary
     print("\n" + "=" * 70)
     print("BASELINE TRAINING COMPLETE")
     print("=" * 70)
     print(f"\nResults saved to: {results_path}")
+
+    if results_df.empty:
+        print("\nNo models completed successfully. Check earlier errors above.")
+        return
+
     print("\nModel Performance Summary:")
     print("-" * 70)
-    
+
     # Sort by best validation AUC
     results_df_sorted = results_df.sort_values('best_val_auc', ascending=False)
-    
+
     print(f"{'Model':<35} {'AUC':<8} {'F1':<8} {'Params':<12} {'Time (min)'}")
     print("-" * 70)
-    
+
     for _, row in results_df_sorted.iterrows():
         print(f"{row['model_name']:<35} "
               f"{row['best_val_auc']:<8.4f} "
               f"{row['final_val_f1']:<8.4f} "
               f"{row['num_parameters']:>10,}  "
               f"{row['training_time_minutes']:>6.1f}")
-    
+
     print("\n" + "=" * 70)
     print("Next Steps:")
     print("  1. Review baseline results in experiments/baseline_results.csv")
