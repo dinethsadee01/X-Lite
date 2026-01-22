@@ -226,7 +226,7 @@ def main():
     print("=" * 70)
     print(f"Training 6 hybrid CNN-Transformer models")
     print(f"Dataset: 20% of training data (stratified)")
-    print(f"Epochs: 20 (early stopping patience=5, CLAHE cached)")
+    print(f"Epochs: 20 (early stopping patience=5, CLAHE pre-computed)")
     print(f"Loss: Weighted BCE with class weights")
     print("=" * 70)
     
@@ -238,26 +238,32 @@ def main():
         print(f"GPU: {torch.cuda.get_device_name(0)}")
         print(f"CUDA Version: {torch.version.cuda}")
     
-    # Paths
-    data_dir = project_root / "data" / "raw" / "images"
+    # Paths - use CLAHE cache for faster data loading
+    clahe_cache_dir = project_root / "data" / "clahe_cache"
     train_csv = project_root / "data" / "splits" / "train.csv"
     val_csv = project_root / "data" / "splits" / "val.csv"
     test_csv = project_root / "data" / "splits" / "test.csv"
+
+    # Validate cache exists
+    if not clahe_cache_dir.exists():
+        print("\n✗ ERROR: CLAHE cache not found.")
+        print(f"  Expected at: {clahe_cache_dir}")
+        print("  Run: python scripts/precompute_clahe.py")
+        return
     
     # Data transforms
     print("\nPreparing data loaders...")
     
-    # Training: Albumentations with medium augmentation + CLAHE
+    # Training: Albumentations with medium augmentation (CLAHE already baked in)
     train_aug = get_augmentation_pipeline(augmentation_strength='medium')
     
-    # Validation: CLAHE preprocessing only
-    val_transform = get_medical_transforms(use_clahe=True, use_denoising=False)
+    # Validation: basic transforms only (CLAHE already baked in)
+    val_transform = get_medical_transforms(use_clahe=False, use_denoising=False)
     
-    # Create full data loaders
-    # Note: num_workers=8 for parallel data loading (CLAHE is applied on-the-fly)
-    # If experiencing issues, reduce to 4 or 0
+    # Create full data loaders from cached CLAHE images
+    # num_workers can be >0 because cached images are plain files
     loaders = get_balanced_data_loaders(
-        data_dir=str(data_dir),
+        data_dir=str(clahe_cache_dir),
         train_split_csv=str(train_csv),
         val_split_csv=str(val_csv),
         test_split_csv=str(test_csv),
