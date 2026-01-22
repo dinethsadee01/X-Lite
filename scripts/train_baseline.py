@@ -193,7 +193,7 @@ def train_single_model(
     history = trainer.train(
         num_epochs=num_epochs,
         scheduler=scheduler,
-        early_stopping_patience=10,
+        early_stopping_patience=5,
         verbose=True
     )
     train_time = time.time() - start_time
@@ -226,7 +226,7 @@ def main():
     print("=" * 70)
     print(f"Training 6 hybrid CNN-Transformer models")
     print(f"Dataset: 20% of training data (stratified)")
-    print(f"Epochs: 30 (early stopping patience=10)")
+    print(f"Epochs: 20 (early stopping patience=5, CLAHE cached)")
     print(f"Loss: Weighted BCE with class weights")
     print("=" * 70)
     
@@ -254,8 +254,8 @@ def main():
     val_transform = get_medical_transforms(use_clahe=True, use_denoising=False)
     
     # Create full data loaders
-    # Note: num_workers=0 because cv2.CLAHE cannot be pickled for multiprocessing
-    # On RTX 4070, single-threaded data loading is still fast enough
+    # Note: num_workers=8 for parallel data loading (CLAHE is applied on-the-fly)
+    # If experiencing issues, reduce to 4 or 0
     loaders = get_balanced_data_loaders(
         data_dir=str(data_dir),
         train_split_csv=str(train_csv),
@@ -264,7 +264,7 @@ def main():
         train_transform=train_aug,
         val_transform=val_transform,
         batch_size=32,
-        num_workers=0,
+        num_workers=8,
         use_weighted_sampler=True
     )
     
@@ -291,7 +291,7 @@ def main():
                 train_loader=train_loader,
                 val_loader=val_loader,
                 device=device,
-                num_epochs=30,
+                num_epochs=20,
                 learning_rate=1e-4,
                 use_clahe=True
             )
