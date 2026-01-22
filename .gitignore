@@ -53,6 +53,7 @@ weights/
 data/raw/
 data/processed/
 data/images/
+data/clahe_cache/
 *.dcm
 *.npy
 *.npz
