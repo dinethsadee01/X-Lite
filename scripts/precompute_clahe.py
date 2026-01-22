@@ -73,21 +73,29 @@ def precompute_clahe_cache(
                 failed_count += 1
                 continue
             
-            # Read grayscale image
-            img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
+            # Read image (PIL for CLAHEPreprocessor compatibility)
+            from PIL import Image
+            img_pil = Image.open(img_path)
             
-            if img is None:
+            if img_pil is None:
                 failed_count += 1
                 continue
             
-            # Apply CLAHE
-            img_clahe = clahe_processor.apply(img)
+            # Apply CLAHE (CLAHEPreprocessor.__call__ expects PIL Image)
+            img_clahe_pil = clahe_processor(img_pil)
+            
+            # Convert back to numpy and save as grayscale
+            img_clahe_np = np.array(img_clahe_pil)
+            if len(img_clahe_np.shape) == 3:
+                img_clahe_gray = cv2.cvtColor(img_clahe_np, cv2.COLOR_RGB2GRAY)
+            else:
+                img_clahe_gray = img_clahe_np
             
             # Save to cache with same directory structure
             cache_path = output_dir / row[img_col]
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             
-            cv2.imwrite(str(cache_path), img_clahe)
+            cv2.imwrite(str(cache_path), img_clahe_gray)
             success_count += 1
             
         except Exception as e:
