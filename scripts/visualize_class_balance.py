@@ -76,31 +76,46 @@ def compute_class_weights(disease_counts, total_samples):
     return class_weights
 
 
-def compute_effective_sampling(disease_counts, total_samples, num_epochs=20):
+def compute_effective_sampling(disease_counts, total_samples, subset_fraction: float = 0.2):
     """
-    Compute effective sampling frequency with WeightedRandomSampler
-    
-    WeightedRandomSampler ensures rare classes are seen more frequently
+    Expected sampling distribution with WeightedRandomSampler.
+
+    Formula (matches training code): w_i = 1.0 / (count_i + 1.0)
     """
-    # Sample weights are inverse of frequency (approximation)
-    # In practice, WeightedRandomSampler uses per-sample weights,
-    # but we can estimate class-level impact
-    
-    label_counts = np.array([disease_counts[d] for d in DISEASE_LABELS])
-    
-    # Inverse frequency weights
-    inv_freq = 1.0 / (label_counts + 1)  # +1 to avoid division by zero
-    inv_freq = inv_freq / inv_freq.sum()  # normalize
-    
-    # Estimated samples per disease in one epoch (with weighted sampling)
-    # This is approximate - actual WeightedRandomSampler is per-image
-    samples_per_epoch = total_samples * 0.2  # 20% subset
-    effective_samples = inv_freq * samples_per_epoch * label_counts.sum() / len(DISEASE_LABELS)
-    
-    effective_counts = {disease: count 
-                       for disease, count in zip(DISEASE_LABELS, effective_samples)}
-    
+    label_counts = np.array([disease_counts[d] for d in DISEASE_LABELS], dtype=float)
+
+    # Inverse-frequency weights (exact match to training)
+    weights = 1.0 / (label_counts + 1.0)
+    weights = weights / weights.sum()
+
+    # Estimated samples per disease in one epoch (approximate)
+    samples_per_epoch = total_samples * subset_fraction  # we train on 20% subset
+    effective_samples = weights * samples_per_epoch
+
+    effective_counts = {disease: count for disease, count in zip(DISEASE_LABELS, effective_samples)}
+
     return effective_counts
+
+
+def compute_effective_contribution(disease_counts, class_weights, total_samples, subset_fraction: float = 0.2):
+    """
+    Approximate effective gradient contribution per class from the combination of:
+    - WeightedRandomSampler (controls how often a class appears)
+    - Weighted BCE loss (scales the gradient magnitude per class)
+
+    contribution_i ≈ (sampler_expected_i) * (loss_weight_i)
+    """
+    # Expected samples from sampler
+    sampler_counts = compute_effective_sampling(disease_counts, total_samples, subset_fraction)
+
+    # Loss weights array aligned to class order
+    loss_weights = np.array([class_weights[d] for d in DISEASE_LABELS], dtype=float)
+    sampler_arr = np.array([sampler_counts[d] for d in DISEASE_LABELS], dtype=float)
+
+    contribution = sampler_arr * loss_weights
+    contribution_dict = {d: c for d, c in zip(DISEASE_LABELS, contribution)}
+
+    return contribution_dict
 
 
 def create_visualization(splits_dir: Path, output_path: Path):
@@ -109,7 +124,13 @@ def create_visualization(splits_dir: Path, output_path: Path):
     # Load data
     disease_counts, total_samples, no_finding = load_class_distribution(splits_dir)
     class_weights = compute_class_weights(disease_counts, total_samples)
-    effective_counts = compute_effective_sampling(disease_counts, total_samples)
+    effective_counts = compute_effective_sampling(disease_counts, total_samples, subset_fraction=0.2)
+    contribution_counts = compute_effective_contribution(
+        disease_counts,
+        class_weights,
+        total_samples,
+        subset_fraction=0.2
+    )
     
     # Sort by original count (descending)
     sorted_diseases = sorted(disease_counts.items(), key=lambda x: x[1], reverse=True)
@@ -119,6 +140,7 @@ def create_visualization(splits_dir: Path, output_path: Path):
     original_counts = np.array([disease_counts[d] for d in diseases])
     weights = np.array([class_weights[d] for d in diseases])
     effective = np.array([effective_counts[d] for d in diseases])
+    contribution = np.array([contribution_counts[d] for d in diseases])
     
     # Create figure with 4 subplots
     fig = plt.figure(figsize=(16, 12))
@@ -172,7 +194,8 @@ def create_visualization(splits_dir: Path, output_path: Path):
     ax3 = fig.add_subplot(gs[1, 1])
     bars3 = ax3.barh(diseases, effective, color='steelblue', edgecolor='black', linewidth=0.5)
     ax3.set_xlabel('Expected Samples per Epoch (20% subset)', fontsize=11, fontweight='bold')
-    ax3.set_title('Strategy 2: Weighted Random Sampling\n(Rare diseases sampled more frequently)\n',
+    ax3.set_title('Strategy 2: Weighted Random Sampling\n'
+                  '(Inverse-frequency weights: w = 1/(count+1))\n',
                   fontsize=12, fontweight='bold', color='darkgreen')
     ax3.invert_yaxis()
     ax3.grid(axis='x', alpha=0.3)
@@ -182,13 +205,13 @@ def create_visualization(splits_dir: Path, output_path: Path):
         ax3.text(count, i, f' {count:.0f}', va='center', fontsize=8)
     
     # ========================================================================
-    # Plot 4: Comparison - Original vs Effective Balance
+    # Plot 4: Combined Effect (Sampler + Weighted Loss)
     # ========================================================================
     ax4 = fig.add_subplot(gs[2, :])
     
-    # Normalize both to percentages for fair comparison
+    # Normalize to percentages for fair comparison
     original_pct = (original_counts / original_counts.sum()) * 100
-    effective_pct = (effective / effective.sum()) * 100
+    contribution_pct = (contribution / contribution.sum()) * 100
     
     x = np.arange(len(diseases))
     width = 0.35
@@ -196,28 +219,27 @@ def create_visualization(splits_dir: Path, output_path: Path):
     bars_orig = ax4.bar(x - width/2, original_pct, width, 
                        label='Original (Imbalanced)', 
                        color='coral', edgecolor='black', linewidth=0.5)
-    bars_eff = ax4.bar(x + width/2, effective_pct, width,
-                      label='After Weighted Sampling',
+    bars_eff = ax4.bar(x + width/2, contribution_pct, width,
+                      label='Combined Effect (Sampler × Loss Weight)',
                       color='lightgreen', edgecolor='black', linewidth=0.5)
     
     ax4.set_ylabel('Percentage of Total Samples (%)', fontsize=11, fontweight='bold')
     ax4.set_xlabel('Disease Class', fontsize=11, fontweight='bold')
-    ax4.set_title('\nAFTER: Impact of Mitigation Strategies\n'
-                 'Comparison of class distribution before and after weighted sampling\n',
+    ax4.set_title('\nCombined Effect: Weighted Sampling + Weighted Loss\n'
+                 'Approximate per-class contribution to training signal\n',
                   fontsize=13, fontweight='bold', color='darkblue')
     ax4.set_xticks(x)
     ax4.set_xticklabels(diseases, rotation=45, ha='right', fontsize=9)
     ax4.legend(fontsize=11, loc='upper left')
     ax4.grid(axis='y', alpha=0.3)
     
-    # Add balance improvement metric
-    # Use coefficient of variation (CV) as balance metric
+    # Add balance improvement metric using combined contribution
     cv_before = np.std(original_pct) / np.mean(original_pct)
-    cv_after = np.std(effective_pct) / np.mean(effective_pct)
-    improvement = ((cv_before - cv_after) / cv_before) * 100
+    cv_after = np.std(contribution_pct) / np.mean(contribution_pct)
+    rare_emphasis = contribution.max() / contribution.min()
     
     ax4.text(0.98, 0.95, 
-            f'Balance Improvement: {improvement:.1f}%\n'
+            f'Rare-Class Emphasis (max/min): {rare_emphasis:.1f}:1\n'
             f'CV Before: {cv_before:.2f} → After: {cv_after:.2f}',
             transform=ax4.transAxes, ha='right', va='top', fontsize=10,
             bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
@@ -255,7 +277,7 @@ def create_visualization(splits_dir: Path, output_path: Path):
     print(f"  1. ✓ Weighted BCE Loss (inverse frequency class weights)")
     print(f"  2. ✓ WeightedRandomSampler (balanced batch composition)")
     print(f"  3. ✓ Stratified data splits (preserve distribution)")
-    print(f"\nBalance Improvement: {improvement:.1f}%")
+    print(f"\nRare-Class Emphasis (Sampler × Loss, max/min): {rare_emphasis:.1f}:1")
     print(f"Coefficient of Variation: {cv_before:.2f} → {cv_after:.2f}")
     print("=" * 70)
 
