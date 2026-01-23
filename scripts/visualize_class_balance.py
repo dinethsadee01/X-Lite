@@ -122,7 +122,7 @@ def create_visualization(splits_dir: Path, output_path: Path):
     
     # Create figure with 4 subplots
     fig = plt.figure(figsize=(16, 12))
-    gs = fig.add_gridspec(3, 2, hspace=0.3, wspace=0.3)
+    gs = fig.add_gridspec(3, 2, hspace=0.6, wspace=0.35)
     
     # Color palette
     colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(diseases)))
@@ -133,7 +133,7 @@ def create_visualization(splits_dir: Path, output_path: Path):
     ax1 = fig.add_subplot(gs[0, :])
     bars1 = ax1.barh(diseases, original_counts, color=colors, edgecolor='black', linewidth=0.5)
     ax1.set_xlabel('Number of Cases', fontsize=12, fontweight='bold')
-    ax1.set_title('BEFORE: Original Class Distribution (Severely Imbalanced)', 
+    ax1.set_title('BEFORE: Original Class Distribution (Severely Imbalanced)\n', 
                   fontsize=14, fontweight='bold', color='darkred')
     ax1.invert_yaxis()
     ax1.grid(axis='x', alpha=0.3)
@@ -156,7 +156,7 @@ def create_visualization(splits_dir: Path, output_path: Path):
     ax2 = fig.add_subplot(gs[1, 0])
     bars2 = ax2.barh(diseases, weights, color=colors[::-1], edgecolor='black', linewidth=0.5)
     ax2.set_xlabel('Weight Factor', fontsize=11, fontweight='bold')
-    ax2.set_title('Strategy 1: Weighted Loss Function\n(Higher weights for rare diseases)',
+    ax2.set_title('Strategy 1: Weighted Loss Function\n(Higher weights for rare diseases)\n',
                   fontsize=12, fontweight='bold', color='darkgreen')
     ax2.invert_yaxis()
     ax2.set_xscale('log')
@@ -172,7 +172,7 @@ def create_visualization(splits_dir: Path, output_path: Path):
     ax3 = fig.add_subplot(gs[1, 1])
     bars3 = ax3.barh(diseases, effective, color='steelblue', edgecolor='black', linewidth=0.5)
     ax3.set_xlabel('Expected Samples per Epoch (20% subset)', fontsize=11, fontweight='bold')
-    ax3.set_title('Strategy 2: Weighted Random Sampling\n(Rare diseases sampled more frequently)',
+    ax3.set_title('Strategy 2: Weighted Random Sampling\n(Rare diseases sampled more frequently)\n',
                   fontsize=12, fontweight='bold', color='darkgreen')
     ax3.invert_yaxis()
     ax3.grid(axis='x', alpha=0.3)
@@ -202,12 +202,12 @@ def create_visualization(splits_dir: Path, output_path: Path):
     
     ax4.set_ylabel('Percentage of Total Samples (%)', fontsize=11, fontweight='bold')
     ax4.set_xlabel('Disease Class', fontsize=11, fontweight='bold')
-    ax4.set_title('AFTER: Impact of Mitigation Strategies\n'
-                 'Comparison of class distribution before and after weighted sampling',
+    ax4.set_title('\nAFTER: Impact of Mitigation Strategies\n'
+                 'Comparison of class distribution before and after weighted sampling\n',
                   fontsize=13, fontweight='bold', color='darkblue')
     ax4.set_xticks(x)
     ax4.set_xticklabels(diseases, rotation=45, ha='right', fontsize=9)
-    ax4.legend(fontsize=11, loc='upper right')
+    ax4.legend(fontsize=11, loc='upper left')
     ax4.grid(axis='y', alpha=0.3)
     
     # Add balance improvement metric
@@ -226,7 +226,7 @@ def create_visualization(splits_dir: Path, output_path: Path):
     # Overall title and footer
     # ========================================================================
     fig.suptitle('Class Imbalance Mitigation Strategies in Training',
-                 fontsize=16, fontweight='bold', y=0.995)
+                 fontsize=16, fontweight='bold', y=0.98)
     
     fig.text(0.5, 0.01,
              f'Dataset: {total_samples:,} training images | '
@@ -237,6 +237,8 @@ def create_visualization(splits_dir: Path, output_path: Path):
     
     # Save
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout(rect=[0, 0.06, 1, 0.96])
+    plt.subplots_adjust(hspace=0.6, wspace=0.35)
     plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.close()
     
