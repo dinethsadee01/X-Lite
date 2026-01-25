@@ -150,34 +150,37 @@ class CombinedLoss(nn.Module):
 def calculate_pos_weights(
     label_counts: torch.Tensor, 
     total_samples: int,
-    smoothing: float = 1.0
+    smoothing: float = 1.0,
+    alpha: float = 0.5
 ) -> torch.Tensor:
     """
-    Calculate positive class weights using inverse frequency
+    Calculate positive class weights using smoothed inverse frequency
     
-    pos_weight_i = (total_samples - count_i) / count_i
+    weight_i = 1 / (count_i + smoothing)^alpha
     
     Args:
         label_counts (torch.Tensor): Number of positive samples per class, shape [num_classes]
         total_samples (int): Total number of samples in dataset
-        smoothing (float): Smoothing factor to avoid extreme weights
+        smoothing (float): Smoothing factor to avoid division by zero
+        alpha (float): Smoothing exponent (0=no weighting, 1=full inverse freq)
+                      Default 0.5 balances rare-class boost with common-class stability
     
     Returns:
         torch.Tensor: Positive weights for each class, shape [num_classes]
     
     Example:
         >>> label_counts = torch.tensor([1000, 500, 100])  # Class frequencies
-        >>> pos_weights = calculate_pos_weights(label_counts, total_samples=10000)
-        >>> # Classes with fewer samples get higher weights
+        >>> pos_weights = calculate_pos_weights(label_counts, total_samples=10000, alpha=0.5)
+        >>> # Classes with fewer samples get higher weights, but not extreme
     """
-    # Avoid division by zero
+    # Smoothed inverse frequency
     label_counts = label_counts.float() + smoothing
     
-    # Calculate negative samples per class
-    neg_counts = total_samples - label_counts
+    # Apply power for smoothing: weights = 1 / count^alpha
+    pos_weights = 1.0 / torch.pow(label_counts, alpha)
     
-    # Inverse frequency: neg / pos
-    pos_weights = neg_counts / label_counts
+    # Normalize to reasonable range (mean weight = total_samples / num_classes)
+    pos_weights = pos_weights * (total_samples / len(label_counts)) / pos_weights.mean()
     
     return pos_weights
 

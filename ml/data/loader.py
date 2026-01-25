@@ -310,28 +310,30 @@ def get_sample_weights(labels_df: pd.DataFrame) -> np.ndarray:
             if label in DISEASE_LABELS:
                 idx = DISEASE_LABELS.index(label)
                 label_counts[idx] += 1
-    
-    # Inverse frequency per class
-    class_weights = 1.0 / (label_counts + 1.0)
-    
-    # Calculate weight for each sample (max weight of its diseases)
+
+    # Smoothed inverse frequency per class (alpha=0.5 for moderate balancing)
+    alpha = 0.5
+    class_weights = 1.0 / np.power(label_counts + 1.0, alpha)
+    # Normalize so mean weight ~1.0
+    class_weights = class_weights / class_weights.mean()
+    no_finding_weight = class_weights.min()
+
+    # Per-sample weight = mean of its class weights (multi-label safe)
     sample_weights = []
     for label_str in labels_df['labels']:
         if pd.isna(label_str) or label_str == 'No Finding':
-            sample_weights.append(1.0)  # Normal case gets baseline weight
+            sample_weights.append(float(no_finding_weight))
             continue
-        
-        labels = label_str.split('|')
-        max_weight = 0.0
-        for label in labels:
-            label = label.strip()
-            if label in DISEASE_LABELS:
-                idx = DISEASE_LABELS.index(label)
-                max_weight = max(max_weight, class_weights[idx])
-        
-        sample_weights.append(max_weight if max_weight > 0 else 1.0)
-    
-    return np.array(sample_weights)
+
+        labels = [lbl.strip() for lbl in label_str.split('|') if lbl.strip() in DISEASE_LABELS]
+        if not labels:
+            sample_weights.append(float(no_finding_weight))
+            continue
+
+        weights = [class_weights[DISEASE_LABELS.index(lbl)] for lbl in labels]
+        sample_weights.append(float(np.mean(weights)))
+
+    return np.array(sample_weights, dtype=np.float64)
 
 
 def get_balanced_data_loaders(
