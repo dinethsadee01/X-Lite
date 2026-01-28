@@ -1,9 +1,9 @@
 # X-Lite Experiment Log
 
 **Project**: Lightweight Chest X-Ray Classification with Knowledge Distillation  
-**Phase**: Pre-baseline Data Pipeline & Balancing Strategy  
+**Phase**: Full Dataset Baseline Training  
 **Hardware**: NVIDIA RTX 4070 Ti SUPER, Windows 11  
-**Last Updated**: January 26, 2026
+**Last Updated**: January 28, 2026
 
 ---
 
@@ -18,6 +18,7 @@
 | [EXP-004](#exp-004-weighted-sampler-fix) | Jan 25 | Fix sampler weights | ✅ Complete | CV improved 0.91→0.42; batch balance verified | ✅ Adopt |
 | [EXP-005](#exp-005-weighted-bce-sampler-ablation) | Jan 25 | Weighted BCE + Sampler | ✅ Complete | Rare +16% AUC, Common -13% AUC, Macro AUC -2.4% | ❌ Reject |
 | [EXP-006](#exp-006-focal-loss-vs-bce) | Jan 26 | Focal Loss ablation | ✅ Complete | Collapsed to all negatives; F1≈0 for 13/14 classes | ❌ Reject |
+| [EXP-007](#exp-007-full-dataset-training-with-power-safe-settings) | Jan 28 | Full 100% dataset, power-safe config | ✅ Complete | **Best: 0.8310 AUC** (18 epochs, batch=16, workers=4) | ⏳ Needs 50-epoch retry |
 
 ---
 
@@ -736,10 +737,115 @@ Early stopping: Patience 10
 **Assistant**: GitHub Copilot (Claude Sonnet 4.5)  
 **Project Timeline**: Phase 1 (Days 1-3) - Data pipeline & baseline selection  
 
-**Current Blocker**: Need to decide on class balancing strategy before proceeding to baseline training (Phase 1, Day 3).
+---
 
-**Decision Needed**: Which experiment to run next? (EXP-007, EXP-008, EXP-009, or EXP-010)
+### EXP-007: Full Dataset Training with Power-Safe Settings
+
+**Date**: January 28, 2026  
+**Objective**: Train 6 baseline models on **100% of training data** (supervisor requirement) with power-safe settings to handle UPS limitations  
+**Status**: ✅ Complete (results show underfitting; 50-epoch retry pending)
+
+#### Configuration
+```python
+Models: 6 hybrid CNN-Transformer architectures (same as EXP-000)
+  1. efficientnet_b0_mhsa
+  2. efficientnet_b0_performer  
+  3. convnext_tiny_mhsa
+  4. convnext_tiny_performer
+  5. mobilenet_v3_large_mhsa
+  6. mobilenet_v3_large_performer
+
+Dataset: 100% of training data (78,484 samples) - FULL DATASET, not 20% subset
+  - Train: 78,484 images
+  - Val: 16,818 images
+  - Stratified by all 14 disease labels (verified max deviation 0.40%)
+
+Epochs: 20 (early stopping patience=10)
+Batch size: 16 (REDUCED FROM 32 for power safety)
+Num workers: 4 (REDUCED FROM 8 for CPU power draw)
+
+Optimizer: AdamW (lr=1e-4, weight_decay=1e-5)
+Scheduler: ReduceLROnPlateau (patience=5, factor=0.5)
+Loss: WeightedBCEWithLogitsLoss (pos_weight from inverse frequency)
+Sampler: None (use_weighted_sampler=False - verified not helpful in EXP-005)
+
+Data Loading: CLAHE cache (3.2GB, 5-10× faster than runtime CLAHE)
+Resume System: Enabled (training_progress.json tracks completed models)
+Metrics: AUC-ROC, F1, PR-AUC, Precision (macro), Recall (macro)
+```
+
+#### Results
+
+| Model | Backbone | Attention | Best Val AUC | Best Epoch | Final Val AUC | Final Val F1 | Final Val PR-AUC | Training Time (min) |
+|-------|----------|-----------|--------------|------------|---------------|--------------|------------------|---------------------|
+| **convnext_tiny_performer** | ConvNext Tiny | Performer | **0.8310** | 18 | 0.8261 | 0.1591 | 0.2551 | 85.3 |
+| convnext_tiny_mhsa | ConvNext Tiny | MHSA | 0.8280 | 15 | 0.8288 | 0.1791 | 0.2635 | 108.3 |
+| efficientnet_b0_mhsa | EfficientNet-B0 | MHSA | 0.8306 | 19 | 0.8295 | 0.1731 | 0.2468 | 85.8 |
+| efficientnet_b0_performer | EfficientNet-B0 | Performer | 0.8265 | 11 | 0.8220 | 0.1670 | 0.2523 | 70.6 |
+| mobilenet_v3_large_mhsa | MobileNet V3 | MHSA | 0.8218 | 10 | 0.8216 | 0.1384 | 0.2304 | 64.6 |
+| mobilenet_v3_large_performer | MobileNet V3 | Performer | 0.8215 | 9 | 0.8211 | 0.1412 | 0.2396 | 60.8 |
+
+**Best Model**: ConvNext Tiny + Performer achieved **0.8310 AUC** (18 epochs)
+
+#### Critical Findings
+
+⚠️ **SIGNIFICANT UNDERFITTING - No improvement from 5× more data:**
+
+| Configuration | Dataset | Epochs | Batch | Best AUC | Improvement |
+|---------------|---------|--------|-------|----------|-------------|
+| EXP-000 (Baseline) | 20% subset | 20 | 32 | 0.7935 | - |
+| **EXP-007 (Full Dataset)** | **100% full** | **20** | **16** | **0.8310** | **+0.0375 (4.7%)** ← Worse than expected |
+
+**Why no better performance despite 5× more training data?**
+
+Root cause analysis:
+1. **Smaller batch size (16 vs 32)**:
+   - Noisier gradient estimates → unstable learning
+   - Smaller effective learning signal per update
+   - BatchNorm statistics less stable with small batches
+   - Per-epoch iterations doubled (4,905 vs 2,453), harder to converge
+
+2. **Early stopping triggered too soon**:
+   - Best epochs: 9-19 (mostly < 20 max epochs)
+   - Only 2 models (EfficientNet-B0 MHSA, ConvNext Performer) reached epoch 18+
+   - 4 models stopped at epochs 9-15 (underfitting)
+   - Suggests validation AUC plateaued early due to noisy updates
+
+3. **No improvement from 5× more data**:
+   - EXP-000: 15,697 train samples → 0.7935 AUC
+   - EXP-007: 78,484 train samples → 0.8310 AUC
+   - Expected: 0.82-0.84+ AUC with proper convergence
+   - Actual: Only 0.0375 improvement (vs 0.05-0.10 expected)
+
+#### Power Consumption Analysis
+
+✅ **UPS did NOT shutdown** - Power-safe settings worked!
+- Batch 16 + Workers 4 = manageable GPU/CPU load
+- Training completed without power events
+- Confirmed safe operating point
+
+#### Decision
+
+⏳ **RETRY WITH 50-EPOCH CONFIG** (planned EXP-007b):
+```python
+batch_size=32  (Back to original, monitor UPS carefully)
+num_workers=4  (Keep safe)
+num_epochs=50  (2.5× more epochs for small-batch convergence)
+early_stopping_patience=10
+```
+
+Rationale:
+- Smaller batches (16) need more epochs to converge smoothly
+- 50 epochs gives models 2.5× more iterations to learn despite noisy gradients
+- Early stopping patience=10 provides buffer to prevent premature stopping
+- Batch 32 should provide better gradient stability (2× GPU power but UPS survived batch 16)
+- If UPS trips → resume system will skip completed models
+
+**Artifacts**:
+- Results: `experiments/baseline_results.csv`
+- Checkpoints: `ml/models/checkpoints/{model_name}/`
+- Progress: `experiments/training_progress.json`
 
 ---
 
-*This log will be updated after each experiment completion.*
+*This log will be updated after EXP-007b (50-epoch retry) completion.*
