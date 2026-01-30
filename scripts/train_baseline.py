@@ -43,6 +43,8 @@ import pandas as pd
 import time
 from datetime import datetime
 import numpy as np
+import json
+from sklearn.metrics import precision_recall_curve, auc as pr_auc
 
 from ml.models.student_model import create_student_model, MODEL_CONFIGS
 from ml.data.loader import get_balanced_data_loaders
@@ -50,48 +52,58 @@ from ml.data.preprocessing import get_medical_transforms
 from ml.data.augmentation import get_augmentation_pipeline
 from ml.training.trainer import create_trainer
 from ml.training.losses import WeightedBCEWithLogitsLoss, calculate_pos_weights
+from ml.training.metrics import compute_metrics
 from config.disease_labels import DISEASE_LABELS
+from scripts.training_utils import (
+    evaluate_final_metrics,
+    load_training_progress,
+    save_training_progress
+)
 
 
-def create_subset_loaders(
-    full_train_loader,
-    full_val_loader,
-    subset_fraction: float = 0.2,
-    seed: int = 42
-):
-    """
-    Create subset of training data for faster baseline experiments
-    
-    Args:
-        full_train_loader: Full training data loader
-        full_val_loader: Full validation data loader
-        subset_fraction: Fraction of training data to use
-        seed: Random seed for reproducibility
-    
-    Returns:
-        tuple: (subset_train_loader, val_loader)
-    """
-    # Get dataset from loader
-    train_dataset = full_train_loader.dataset
-    
-    # Create stratified subset
-    np.random.seed(seed)
-    subset_size = int(len(train_dataset) * subset_fraction)
-    indices = np.random.choice(len(train_dataset), subset_size, replace=False)
-    
-    subset_dataset = Subset(train_dataset, indices)
-    
-    # Create new loader with subset
-    subset_loader = torch.utils.data.DataLoader(
-        subset_dataset,
-        batch_size=full_train_loader.batch_size,
-        shuffle=True,
-        num_workers=full_train_loader.num_workers,
-        pin_memory=full_train_loader.pin_memory,
-        drop_last=True
-    )
-    
-    return subset_loader, full_val_loader
+# ============================================================================
+# COMMENTED OUT: 20% Subset Creation (Now using full dataset)
+# ============================================================================
+# def create_subset_loaders(
+#     full_train_loader,
+#     full_val_loader,
+#     subset_fraction: float = 0.2,
+#     seed: int = 42
+# ):
+#     """
+#     Create subset of training data for faster baseline experiments
+#     
+#     Args:
+#         full_train_loader: Full training data loader
+#         full_val_loader: Full validation data loader
+#         subset_fraction: Fraction of training data to use
+#         seed: Random seed for reproducibility
+#     
+#     Returns:
+#         tuple: (subset_train_loader, val_loader)
+#     """
+#     # Get dataset from loader
+#     train_dataset = full_train_loader.dataset
+#     
+#     # Create stratified subset
+#     np.random.seed(seed)
+#     subset_size = int(len(train_dataset) * subset_fraction)
+#     indices = np.random.choice(len(train_dataset), subset_size, replace=False)
+#     
+#     subset_dataset = Subset(train_dataset, indices)
+#     
+#     # Create new loader with subset
+#     subset_loader = torch.utils.data.DataLoader(
+#         subset_dataset,
+#         batch_size=full_train_loader.batch_size,
+#         shuffle=True,
+#         num_workers=full_train_loader.num_workers,
+#         pin_memory=full_train_loader.pin_memory,
+#         drop_last=True
+#     )
+#     
+#     return subset_loader, full_val_loader
+# ============================================================================
 
 
 def train_single_model(
@@ -198,6 +210,11 @@ def train_single_model(
     )
     train_time = time.time() - start_time
     
+    # Evaluate final comprehensive metrics
+    print("\nComputing final metrics (AUC, F1, PR-AUC, Precision, Recall)...")
+    final_train_metrics = evaluate_final_metrics(model, train_loader, device)
+    final_val_metrics = evaluate_final_metrics(model, val_loader, device)
+    
     # Collect results
     results = {
         'model_name': model_name,
@@ -207,14 +224,27 @@ def train_single_model(
         'model_size_mb': model_size_mb,
         'best_val_auc': trainer.best_val_auc,
         'best_epoch': trainer.best_epoch,
-        'final_train_auc': history['train_auc'][-1],
-        'final_val_auc': history['val_auc'][-1],
-        'final_train_f1': history['train_f1'][-1],
-        'final_val_f1': history['val_f1'][-1],
+        'final_train_auc': final_train_metrics['AUC_macro'],
+        'final_val_auc': final_val_metrics['AUC_macro'],
+        'final_train_f1': final_train_metrics['F1_macro'],
+        'final_val_f1': final_val_metrics['F1_macro'],
+        'final_train_pr_auc': final_train_metrics['PR_AUC_macro'],
+        'final_val_pr_auc': final_val_metrics['PR_AUC_macro'],
+        'final_train_precision': final_train_metrics['Precision_macro'],
+        'final_val_precision': final_val_metrics['Precision_macro'],
+        'final_train_recall': final_train_metrics['Recall_macro'],
+        'final_val_recall': final_val_metrics['Recall_macro'],
         'training_time_minutes': train_time / 60,
         'use_clahe': use_clahe,
         'timestamp': datetime.now().isoformat()
     }
+    
+    print(f"\n✅ Final Metrics:")
+    print(f"   Val AUC: {results['final_val_auc']:.4f}")
+    print(f"   Val F1: {results['final_val_f1']:.4f}")
+    print(f"   Val PR-AUC: {results['final_val_pr_auc']:.4f}")
+    print(f"   Val Precision: {results['final_val_precision']:.4f}")
+    print(f"   Val Recall: {results['final_val_recall']:.4f}")
     
     return results
 
@@ -222,12 +252,14 @@ def train_single_model(
 def main():
     """Run baseline training for all 6 student models"""
     print("\n" + "=" * 70)
-    print("BASELINE STUDENT MODEL TRAINING")
+    print("BASELINE STUDENT MODEL TRAINING (FULL DATASET)")
     print("=" * 70)
     print(f"Training 6 hybrid CNN-Transformer models")
-    print(f"Dataset: 20% of training data (stratified)")
-    print(f"Epochs: 20 (early stopping patience=5, CLAHE pre-computed)")
+    print(f"Dataset: 100% of training data (stratified, full 78,484 samples)")
+    print(f"Epochs: 50 (early stopping patience=10)")
     print(f"Loss: Weighted BCE with class weights")
+    print(f"Metrics: AUC, F1, PR-AUC, Precision, Recall")
+    print(f"Resume: Automatically skips completed models (training_progress.json)")
     print("=" * 70)
     
     # Device
@@ -270,85 +302,131 @@ def main():
         train_transform=train_aug,
         val_transform=val_transform,
         batch_size=32,
-        num_workers=8,
-        use_weighted_sampler=True
+        num_workers=4,
+        use_weighted_sampler=False
     )
     
-    # Create subset for faster training (20%)
-    print("\nCreating 20% training subset...")
-    train_loader, val_loader = create_subset_loaders(
-        loaders['train'],
-        loaders['val'],
-        subset_fraction=0.2,
-        seed=42
-    )
+    # ========================================================================
+    # USING FULL DATASET (Commented out 20% subset code)
+    # ========================================================================
+    # print("\nCreating 20% training subset...")
+    # train_loader, val_loader = create_subset_loaders(
+    #     loaders['train'],
+    #     loaders['val'],
+    #     subset_fraction=0.2,
+    #     seed=42
+    # )
     
+    # Use full loaders directly
+    train_loader = loaders['train']
+    val_loader = loaders['val']
+    
+    print(f"\n✅ Using FULL training dataset:")
     print(f"  Train batches: {len(train_loader)}")
     print(f"  Val batches: {len(val_loader)}")
+    print(f"  Train samples: ~{len(train_loader) * 32:,}")
+    print(f"  Val samples: ~{len(val_loader) * 32:,}")
+    
+    # Load training progress (for resume capability)
+    completed_models = load_training_progress()
+    
+    if completed_models:
+        print(f"\n✅ Found {len(completed_models)} completed model(s): {', '.join(completed_models)}")
+        print(f"   These will be skipped. Delete training_progress.json to retrain all.")
     
     # Results storage
     all_results = []
     
+    # Load existing results if resuming
+    results_dir = project_root / "experiments"
+    results_path = results_dir / "baseline_results.csv"
+    if results_path.exists():
+        existing_df = pd.read_csv(results_path)
+        # Keep only completed models
+        existing_df = existing_df[existing_df['model_name'].isin(completed_models)]
+        all_results = existing_df.to_dict('records')
+        print(f"\n✅ Loaded {len(all_results)} existing result(s) from baseline_results.csv")
+    
     # Train each model
-    for model_name in MODEL_CONFIGS.keys():
+    models_to_train = [m for m in MODEL_CONFIGS.keys() if m not in completed_models]
+    
+    print(f"\n{'='*70}")
+    print(f"TRAINING QUEUE: {len(models_to_train)} model(s) remaining")
+    print(f"{'='*70}")
+    for i, model_name in enumerate(models_to_train, 1):
+        print(f"  {i}. {model_name}")
+    print(f"{'='*70}\n")
+    
+    for model_name in models_to_train:
         try:
+            print(f"\n\n{'#'*70}")
+            print(f"# TRAINING MODEL {models_to_train.index(model_name) + 1}/{len(models_to_train)}: {model_name}")
+            print(f"{'#'*70}\n")
+            
             results = train_single_model(
                 model_name=model_name,
                 train_loader=train_loader,
                 val_loader=val_loader,
                 device=device,
-                num_epochs=20,
+                num_epochs=50,
                 learning_rate=1e-4,
                 use_clahe=True
             )
             all_results.append(results)
             
+            # Mark as completed and save progress immediately
+            completed_models.add(model_name)
+            save_training_progress(completed_models)
+            
+            # Save intermediate results after each model
+            temp_df = pd.DataFrame(all_results)
+            temp_df.to_csv(results_path, index=False)
+            print(f"\n✅ Results saved (intermediate): {results_path}")
+            
         except Exception as e:
             print(f"\n✗ Error training {model_name}: {str(e)}")
             import traceback
             traceback.print_exc()
+            print(f"\n⚠️  Training failed for {model_name}. Progress saved. You can resume later.")
             continue
     
-    # Save results
-    results_dir = project_root / "experiments"
-    results_dir.mkdir(exist_ok=True)
-    
-    results_df = pd.DataFrame(all_results)
-    results_path = results_dir / "baseline_results.csv"
-    results_df.to_csv(results_path, index=False)
-
-    # Print summary
-    print("\n" + "=" * 70)
-    print("BASELINE TRAINING COMPLETE")
-    print("=" * 70)
-    print(f"\nResults saved to: {results_path}")
-
-    if results_df.empty:
-        print("\nNo models completed successfully. Check earlier errors above.")
-        return
-
-    print("\nModel Performance Summary:")
-    print("-" * 70)
-
-    # Sort by best validation AUC
-    results_df_sorted = results_df.sort_values('best_val_auc', ascending=False)
-
-    print(f"{'Model':<35} {'AUC':<8} {'F1':<8} {'Params':<12} {'Time (min)'}")
-    print("-" * 70)
-
-    for _, row in results_df_sorted.iterrows():
-        print(f"{row['model_name']:<35} "
-              f"{row['best_val_auc']:<8.4f} "
-              f"{row['final_val_f1']:<8.4f} "
-              f"{row['num_parameters']:>10,}  "
-              f"{row['training_time_minutes']:>6.1f}")
-
-    print("\n" + "=" * 70)
-    print("Next Steps:")
-    print("  1. Review baseline results in experiments/baseline_results.csv")
-    print("  2. Select best performing architecture")
-    print("  3. Proceed to knowledge distillation experiments")
-    print("=" * 70)
+    # Save final results
+    if all_results:
+        results_dir.mkdir(exist_ok=True)
+        results_df = pd.DataFrame(all_results)
+        results_df.to_csv(results_path, index=False)
+        
+        print(f"\n\n{'='*70}")
+        print(f"✅ FINAL RESULTS SAVED: {results_path}")
+        print(f"{'='*70}\n")
+        
+        # Sort by best validation AUC
+        results_df_sorted = results_df.sort_values('best_val_auc', ascending=False)
+        
+        print("\n" + "=" * 70)
+        print("BASELINE TRAINING SUMMARY (FULL DATASET)")
+        print("=" * 70)
+        print(f"{'Model':<30} {'Val AUC':<10} {'Val F1':<10} {'PR-AUC':<10} {'Prec':<8} {'Rec':<8} {'Time':<8}")
+        print("-" * 70)
+        
+        for _, row in results_df_sorted.iterrows():
+            print(f"{row['model_name']:<30} "
+                  f"{row['best_val_auc']:<10.4f} "
+                  f"{row['final_val_f1']:<10.4f} "
+                  f"{row['final_val_pr_auc']:<10.4f} "
+                  f"{row['final_val_precision']:<8.4f} "
+                  f"{row['final_val_recall']:<8.4f} "
+                  f"{row['training_time_minutes']:<8.1f}")
+        
+        print("=" * 70)
+        print(f"✅ Best model: {results_df_sorted.iloc[0]['model_name']} "
+              f"(AUC: {results_df_sorted.iloc[0]['best_val_auc']:.4f})")
+        print(f"✅ All {len(all_results)} models completed successfully!")
+        print(f"✅ Results: {results_path}")
+        print("=" * 70)
+    else:
+        print("\n⚠️  No models were trained (all already completed or errors occurred).")
+        print("   Check training_progress.json or error logs above.")
 
 
 if __name__ == "__main__":
