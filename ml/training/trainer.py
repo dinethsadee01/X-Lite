@@ -22,7 +22,7 @@ Key Features:
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import autocast
 from typing import Dict, Optional, Callable
 from pathlib import Path
 import time
@@ -85,8 +85,15 @@ class ModelTrainer:
         self.use_amp = use_amp
         self.gradient_clip_val = gradient_clip_val
         
-        # Mixed precision scaler
-        self.scaler = GradScaler() if use_amp else None
+        # Mixed precision scaler (torch 2.6+ uses torch.amp.GradScaler)
+        if use_amp:
+            try:
+                self.scaler = torch.amp.GradScaler('cuda')
+            except Exception:
+                from torch.cuda.amp import GradScaler
+                self.scaler = GradScaler()
+        else:
+            self.scaler = None
         
         # Metric trackers
         self.train_metrics = MetricsTracker(num_classes, DISEASE_LABELS)
@@ -290,7 +297,10 @@ class ModelTrainer:
     
     def load_checkpoint(self, checkpoint_path: Path):
         """Load checkpoint to resume training"""
-        checkpoint = torch.load(checkpoint_path, map_location=self.device)
+        try:
+            checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
+        except TypeError:
+            checkpoint = torch.load(checkpoint_path, map_location=self.device)
         
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
