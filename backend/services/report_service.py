@@ -17,7 +17,7 @@ class ReportService:
     
     def __init__(self):
         self.reports_dir = Config.UPLOAD_FOLDER / "reports"
-        self.reports_dir.mkdir(exist_ok=True)
+        self.reports_dir.mkdir(parents=True, exist_ok=True)
     
     def generate_pdf_report(
         self,
