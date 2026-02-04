@@ -1,0 +1,2 @@
+student_model,backbone,attention,temperature,alpha,best_val_auc,best_epoch,final_train_auc,final_val_auc,final_train_f1,final_val_f1,final_train_pr_auc,final_val_pr_auc,final_train_precision,final_val_precision,final_train_recall,final_val_recall,training_time_minutes,timestamp
+convnext_tiny_mhsa,convnext_tiny,mhsa,4.0,0.7,0.844597045347973,15,0.9306291470689372,0.83581493138578,0.09474955292875174,0.0944917503017031,0.4923709765795744,0.28721563859945276,0.0517216266604521,0.05171330037544808,1.0,1.0,100.09408236344656,2026-02-04T17:38:06.576390
