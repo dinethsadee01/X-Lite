@@ -127,7 +127,7 @@ def create_per_disease_chart(test_data):
         Patch(facecolor='#F39C12', alpha=0.8, label='Fair (0.75-0.80)'),
         Patch(facecolor='#E74C3C', alpha=0.8, label='Poor (<0.75)')
     ]
-    ax.legend(handles=legend_elements, loc='lower right', fontsize=10)
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=10)
     
     plt.tight_layout()
     plt.savefig(project_root / "results" / "test_per_disease_auc.png", dpi=300, bbox_inches='tight')
@@ -189,20 +189,20 @@ def create_baseline_vs_kd_comparison():
 
 
 def create_training_efficiency_chart():
-    """Create chart showing training efficiency (epochs vs AUC)"""
+    """Create chart showing training efficiency (epochs to convergence vs AUC)"""
     
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    # Data
-    configs = ['Baseline\n(50 epochs)', 'KD\n(40 epochs)', 'Best at Test\n(Converged)']
-    epochs = [50, 40, 33]  # KD converged at epoch 15 but ran 40, test eval on best
+    # Data - epochs to reach best AUC (convergence), not total training epochs
+    configs = ['Baseline\n(Converged at Epoch 28)', 'KD\n(Converged at Epoch 15)', 'Test Set\n(Best Checkpoint)']
+    epochs = [28, 15, 28]  # Actual epochs where best AUC was achieved
     aucs = [0.8351, 0.8446, 0.8390]  # Baseline best, KD best val, Test best
     colors_list = ['#E67E22', '#9B59B6', '#27AE60']
     
     bars = ax.bar(configs, aucs, color=colors_list, alpha=0.8, edgecolor='black', linewidth=1.5)
     
     ax.set_ylabel('Best AUC', fontsize=12, fontweight='bold')
-    ax.set_title('Training Efficiency: AUC vs Configuration\nConvNext Tiny MHSA Model Comparison', 
+    ax.set_title('Training Efficiency: AUC vs Convergence Epochs\nConvNext Tiny MHSA Model Comparison', 
                  fontsize=14, fontweight='bold', pad=20)
     ax.set_ylim(0.82, 0.850)
     ax.grid(axis='y', alpha=0.3, linestyle='--')
@@ -210,12 +210,126 @@ def create_training_efficiency_chart():
     # Add value labels with epoch info
     for i, (bar, auc, ep) in enumerate(zip(bars, aucs, epochs)):
         ax.text(bar.get_x() + bar.get_width()/2., auc + 0.002,
-               f'AUC: {auc:.4f}\nEpochs: {ep}',
+               f'AUC: {auc:.4f}\nConverged: Epoch {ep}',
                ha='center', va='bottom', fontsize=11, fontweight='bold')
     
     plt.tight_layout()
     plt.savefig(project_root / "results" / "training_efficiency.png", dpi=300, bbox_inches='tight')
     print("✓ Saved: results/training_efficiency.png")
+    plt.close()
+
+
+def create_calibration_plot():
+    """Create calibration plot showing predicted probabilities vs true positive rate"""
+    
+    # Load test evaluation results with predictions
+    test_results_path = project_root / "experiments" / "test_evaluation_results.json"
+    with open(test_results_path) as f:
+        test_data = json.load(f)
+    
+    # We need to regenerate predictions - load model and test data
+    import torch
+    from torch.utils.data import DataLoader
+    from ml.models.student_model import create_student_model
+    from ml.data.preprocessing import get_medical_transforms
+    from scripts.evaluate_test_set import RawTestDataset
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    # Load model
+    checkpoint_path = project_root / "ml" / "models" / "checkpoints" / "kd" / "convnext_tiny_mhsa" / "best_checkpoint.pth"
+    student = create_student_model('convnext_tiny_mhsa', num_classes=14, pretrained=False)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    student.load_state_dict(checkpoint['student_state_dict'])
+    student.to(device)
+    student.eval()
+    
+    # Load test data
+    test_csv = project_root / "data" / "splits" / "test.csv"
+    raw_images_dir = project_root / "data" / "raw" / "images"
+    val_transform = get_medical_transforms(use_clahe=False, use_denoising=False)
+    test_dataset = RawTestDataset(test_csv, raw_images_dir, transform=val_transform)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers=4, pin_memory=True)
+    
+    # Get predictions
+    all_preds = []
+    all_targets = []
+    
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images = images.to(device)
+            outputs = student(images)
+            probs = torch.sigmoid(outputs).cpu().numpy()
+            all_preds.append(probs)
+            all_targets.append(labels.numpy())
+    
+    preds = np.concatenate(all_preds, axis=0)
+    targets = np.concatenate(all_targets, axis=0)
+    
+    # Create calibration plot for top 6 diseases (by AUC)
+    disease_aucs = [(i, test_data['per_disease_metrics'][DISEASE_LABELS[i]]['auc']) 
+                    for i in range(14)]
+    disease_aucs_sorted = sorted(disease_aucs, key=lambda x: x[1], reverse=True)
+    top_diseases = [d[0] for d in disease_aucs_sorted[:6]]
+    
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+    axes = axes.flatten()
+    
+    bins = np.linspace(0, 1, 11)  # 10 bins: [0-0.1), [0.1-0.2), ..., [0.9-1.0]
+    
+    for idx, disease_idx in enumerate(top_diseases):
+        ax = axes[idx]
+        disease_name = DISEASE_LABELS[disease_idx]
+        
+        disease_preds = preds[:, disease_idx]
+        disease_targets = targets[:, disease_idx]
+        
+        # Calculate calibration
+        bin_means = []
+        bin_true_rates = []
+        bin_counts = []
+        
+        for i in range(len(bins) - 1):
+            bin_mask = (disease_preds >= bins[i]) & (disease_preds < bins[i+1])
+            if i == len(bins) - 2:  # Last bin includes 1.0
+                bin_mask = (disease_preds >= bins[i]) & (disease_preds <= bins[i+1])
+            
+            if bin_mask.sum() > 0:
+                bin_preds = disease_preds[bin_mask]
+                bin_targets = disease_targets[bin_mask]
+                bin_means.append(bin_preds.mean())
+                bin_true_rates.append(bin_targets.mean())
+                bin_counts.append(len(bin_preds))
+        
+        # Plot calibration curve
+        ax.plot(bin_means, bin_true_rates, 'o-', linewidth=2, markersize=8, 
+                color='#2E86AB', label='Model Calibration')
+        
+        # Plot perfect calibration line
+        ax.plot([0, 1], [0, 1], '--', color='#E74C3C', linewidth=2, 
+                alpha=0.7, label='Perfect Calibration')
+        
+        ax.set_xlabel('Mean Predicted Probability', fontsize=10, fontweight='bold')
+        ax.set_ylabel('Fraction of Positives', fontsize=10, fontweight='bold')
+        ax.set_title(f'{disease_name}\nAUC: {test_data["per_disease_metrics"][disease_name]["auc"]:.3f}',
+                     fontsize=11, fontweight='bold')
+        ax.set_xlim([0, 1])
+        ax.set_ylim([0, 1])
+        ax.grid(alpha=0.3, linestyle='--')
+        ax.legend(fontsize=8, loc='upper left')
+        
+        # Add sample count annotation
+        total_positives = int(disease_targets.sum())
+        total_samples = len(disease_targets)
+        ax.text(0.98, 0.02, f'Positives: {total_positives}/{total_samples}',
+                transform=ax.transAxes, fontsize=8, ha='right', va='bottom',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+    
+    plt.suptitle('Calibration Curves: Top 6 Diseases by AUC\nConvNext Tiny MHSA on Test Set',
+                 fontsize=14, fontweight='bold', y=0.995)
+    plt.tight_layout()
+    plt.savefig(project_root / "results" / "calibration_curves.png", dpi=300, bbox_inches='tight')
+    print("✓ Saved: results/calibration_curves.png")
     plt.close()
 
 
@@ -268,6 +382,7 @@ def main():
     create_per_disease_chart(test_data)
     create_baseline_vs_kd_comparison()
     create_training_efficiency_chart()
+    create_calibration_plot()
     summary_df = create_summary_table()
     
     print("\n" + "="*70)
@@ -280,6 +395,7 @@ def main():
     print("   - results/test_per_disease_auc.png")
     print("   - results/baseline_vs_kd_comparison.png")
     print("   - results/training_efficiency.png")
+    print("   - results/calibration_curves.png")
     print("   - experiments/phase_comparison_summary.csv")
 
 
