@@ -1,0 +1,4 @@
+Configuration,Model,Epochs,Best AUC,Final AUC,Macro F1,Macro PR-AUC,Notes
+Baseline,ConvNext Tiny MHSA,50,0.8351,0.8314,0.1791,0.2635,50 epochs full dataset
+KD (Validation),ConvNext Tiny MHSA,40,0.844597045347973,0.83581493138578,0.0944917503017031,0.2872156385994527,"T=4.0, α=0.7, 40 epochs"
+KD (Test),ConvNext Tiny MHSA,N/A,0.8390175867266292,N/A,0.09466658541140106,0.2692381226639421,Unseen test set
