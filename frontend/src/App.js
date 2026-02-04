@@ -34,7 +34,7 @@ function App() {
       setUploadedImage({
         file: file,
         preview: URL.createObjectURL(file),
-        filename: uploadData.filename,
+        filename: uploadData.data.filename,
       });
 
       // Get prediction
@@ -44,7 +44,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          filename: uploadData.filename,
+          filename: uploadData.data.filename,
           return_heatmap: true,
           confidence_threshold: 0.5,
         }),
