@@ -8,10 +8,10 @@ Purpose: Establish baselines before knowledge distillation experiments.
 Models Trained:
 1. efficientnet_b0_mhsa
 2. efficientnet_b0_performer
-3. convnext_tiny_mhsa
-4. convnext_tiny_performer
-5. mobilenet_v3_large_mhsa
-6. mobilenet_v3_large_performer
+3. mobilenet_v3_large_mhsa
+4. mobilenet_v3_large_performer
+5. shufflenet_v2_x1_0_mhsa
+6. shufflenet_v2_x1_0_performer
 
 Training Configuration:
 - Dataset: 20% of training data (stratified sampling)

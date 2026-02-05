@@ -5,8 +5,8 @@ Lightweight hybrid architectures combining CNNs with Transformer attention:
 
 CNN Backbones (Feature Extraction):
 - EfficientNet-B0 (5.3M params)
-- ConvNeXt-Tiny (28.6M params → efficient with pruning)
 - MobileNetV3-Large (5.4M params)
+- ShuffleNetV2 x1.0 (2.3M params)
 
 Transformer Attention Modules (Spatial Relationships):
 - MHSA (Multi-Head Self-Attention): Standard transformer attention
@@ -25,7 +25,7 @@ Total Variants: 3 backbones × 2 attention types = 6 models
 
 import torch
 import torch.nn as nn
-import torchvision.models as models
+import timm
 from typing import Optional, Tuple, Callable
 import math
 
@@ -300,8 +300,8 @@ class HybridStudentModel(nn.Module):
     
     CNN Backbones (Feature Extraction):
     - efficientnet_b0: 5.3M params, compound scaling
-    - convnext_tiny: 28.6M params, modern CNN design
     - mobilenet_v3_large: 5.4M params, efficient mobile architecture
+    - shufflenet_v2_x1_0: 2.3M params, lightweight architecture
     
     Transformer Attention (Spatial Relationships):
     - mhsa: Multi-Head Self-Attention (standard, O(N²))
@@ -372,56 +372,28 @@ class HybridStudentModel(nn.Module):
         Returns:
             Tuple[nn.Module, int]: (backbone_model, feature_dimension)
         """
-        if backbone == 'efficientnet_b0':
-            # EfficientNet-B0: 5.3M params
-            # Compound scaling: depth/width/resolution
-            weights = models.EfficientNet_B0_Weights.IMAGENET1K_V1 if pretrained else None
-            model = models.efficientnet_b0(weights=weights)
-            
-            # Get feature dimension from last conv layer
-            feature_dim = model.classifier[1].in_features  # 1280
-            
-            # Remove classifier, keep feature extractor
-            model.classifier = nn.Identity()
-            backbone_features = nn.Sequential(*list(model.children())[:-1])
-            
-            return backbone_features, feature_dim
-        
-        elif backbone == 'convnext_tiny':
-            # ConvNeXt-Tiny: 28.6M params
-            # Modern CNN with transformer-like design (depthwise convs, LayerNorm)
-            weights = models.ConvNeXt_Tiny_Weights.IMAGENET1K_V1 if pretrained else None
-            model = models.convnext_tiny(weights=weights)
-            
-            # Get feature dimension
-            feature_dim = model.classifier[2].in_features  # 768
-            
-            # Remove classifier
-            model.classifier = nn.Identity()
-            backbone_features = nn.Sequential(*list(model.children())[:-1])
-            
-            return backbone_features, feature_dim
-        
-        elif backbone == 'mobilenet_v3_large':
-            # MobileNetV3-Large: 5.4M params
-            # Efficient architecture with depthwise separable convolutions
-            weights = models.MobileNet_V3_Large_Weights.IMAGENET1K_V1 if pretrained else None
-            model = models.mobilenet_v3_large(weights=weights)
-            
-            # Get feature dimension
-            feature_dim = model.classifier[0].in_features  # 960
-            
-            # Remove classifier
-            model.classifier = nn.Identity()
-            backbone_features = nn.Sequential(*list(model.children())[:-1])
-            
-            return backbone_features, feature_dim
-        
-        else:
+        supported_backbones = {
+            'efficientnet_b0',
+            'mobilenet_v3_large',
+            'shufflenet_v2_x1_0'
+        }
+
+        if backbone not in supported_backbones:
             raise ValueError(
                 f"Unsupported backbone: {backbone}. "
-                f"Choose from: 'efficientnet_b0', 'convnext_tiny', 'mobilenet_v3_large'"
+                f"Choose from: 'efficientnet_b0', 'mobilenet_v3_large', 'shufflenet_v2_x1_0'"
             )
+
+        model = timm.create_model(
+            backbone,
+            pretrained=pretrained,
+            num_classes=0,
+            global_pool=''
+        )
+
+        feature_dim = model.num_features
+
+        return model, feature_dim
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -488,10 +460,10 @@ def create_student_model(
     Available Architectures:
     - 'efficientnet_b0_mhsa': EfficientNet-B0 + MHSA
     - 'efficientnet_b0_performer': EfficientNet-B0 + Performer
-    - 'convnext_tiny_mhsa': ConvNeXt-Tiny + MHSA
-    - 'convnext_tiny_performer': ConvNeXt-Tiny + Performer
     - 'mobilenet_v3_large_mhsa': MobileNetV3-Large + MHSA
     - 'mobilenet_v3_large_performer': MobileNetV3-Large + Performer
+    - 'shufflenet_v2_x1_0_mhsa': ShuffleNetV2 x1.0 + MHSA
+    - 'shufflenet_v2_x1_0_performer': ShuffleNetV2 x1.0 + Performer
     
     Total: 3 backbones × 2 attention = 6 hybrid models
     
@@ -549,19 +521,7 @@ MODEL_CONFIGS = {
         'attention': 'performer',
         'description': 'EfficientNet-B0 + Performer (efficient attention)'
     },
-    
-    # ConvNeXt-Tiny variants
-    'convnext_tiny_mhsa': {
-        'backbone': 'convnext_tiny',
-        'attention': 'mhsa',
-        'description': 'ConvNeXt-Tiny + Multi-Head Self-Attention'
-    },
-    'convnext_tiny_performer': {
-        'backbone': 'convnext_tiny',
-        'attention': 'performer',
-        'description': 'ConvNeXt-Tiny + Performer (efficient attention)'
-    },
-    
+
     # MobileNetV3-Large variants
     'mobilenet_v3_large_mhsa': {
         'backbone': 'mobilenet_v3_large',
@@ -572,6 +532,18 @@ MODEL_CONFIGS = {
         'backbone': 'mobilenet_v3_large',
         'attention': 'performer',
         'description': 'MobileNetV3-Large + Performer (efficient attention)'
+    },
+
+    # ShuffleNetV2 x1.0 variants
+    'shufflenet_v2_x1_0_mhsa': {
+        'backbone': 'shufflenet_v2_x1_0',
+        'attention': 'mhsa',
+        'description': 'ShuffleNetV2 x1.0 + Multi-Head Self-Attention'
+    },
+    'shufflenet_v2_x1_0_performer': {
+        'backbone': 'shufflenet_v2_x1_0',
+        'attention': 'performer',
+        'description': 'ShuffleNetV2 x1.0 + Performer (efficient attention)'
     }
 }
 
