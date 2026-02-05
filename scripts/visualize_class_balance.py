@@ -1,21 +1,21 @@
 """
-Class Balance Mitigation Visualization
-=======================================
-Shows before/after comparison of class imbalance handling strategies.
+Training Data Balance Analysis
+==============================
+Compares full training set vs smart subset to validate balancing strategy.
 
 Visualizations:
-1. Original class distribution (imbalanced)
-2. Class weights applied in loss function
-3. Effective sampling distribution with WeightedRandomSampler
-4. Expected class frequency after sampling
+1. Full train vs subset disease distribution
+2. Recalculated class weights (full vs subset)
+3. No Finding ratio comparison
+4. Subset composition breakdown
 
-Purpose: Document how we address severe class imbalance in training.
+Purpose: Validate that smart subset preserves diversity while improving balance.
 
 Usage:
     python scripts/visualize_class_balance.py
 
 Output:
-    results/class_balance_mitigation.png - Comprehensive comparison
+    results/subset_balance_analysis.png - Full vs Subset comparison
 """
 
 import sys
@@ -34,9 +34,9 @@ from ml.training.losses import calculate_pos_weights
 import torch
 
 
-def load_class_distribution(splits_dir: Path):
-    """Load and compute class distribution from training data"""
-    train_df = pd.read_csv(splits_dir / "train.csv")
+def load_class_distribution(csv_path: Path):
+    """Load and compute class distribution from a CSV file"""
+    train_df = pd.read_csv(csv_path)
     
     # Rename columns if needed
     if 'Image Index' in train_df.columns:
@@ -76,209 +76,210 @@ def compute_class_weights(disease_counts, total_samples):
     return class_weights
 
 
-def compute_effective_sampling(disease_counts, total_samples, subset_fraction: float = 0.2):
-    """
-    Expected sampling distribution with WeightedRandomSampler.
-
-    Formula (matches training code): w_i = 1.0 / (count_i + 1.0)
-    """
-    label_counts = np.array([disease_counts[d] for d in DISEASE_LABELS], dtype=float)
-
-    # Inverse-frequency weights (exact match to training)
-    weights = 1.0 / (label_counts + 1.0)
-    weights = weights / weights.sum()
-
-    # Estimated samples per disease in one epoch (approximate)
-    samples_per_epoch = total_samples * subset_fraction  # we train on 20% subset
-    effective_samples = weights * samples_per_epoch
-
-    effective_counts = {disease: count for disease, count in zip(DISEASE_LABELS, effective_samples)}
-
-    return effective_counts
-
-
-def compute_effective_contribution(disease_counts, class_weights, total_samples, subset_fraction: float = 0.2):
-    """
-    Approximate effective gradient contribution per class from the combination of:
-    - WeightedRandomSampler (controls how often a class appears)
-    - Weighted BCE loss (scales the gradient magnitude per class)
-
-    contribution_i ≈ (sampler_expected_i) * (loss_weight_i)
-    """
-    # Expected samples from sampler
-    sampler_counts = compute_effective_sampling(disease_counts, total_samples, subset_fraction)
-
-    # Loss weights array aligned to class order
-    loss_weights = np.array([class_weights[d] for d in DISEASE_LABELS], dtype=float)
-    sampler_arr = np.array([sampler_counts[d] for d in DISEASE_LABELS], dtype=float)
-
-    contribution = sampler_arr * loss_weights
-    contribution_dict = {d: c for d, c in zip(DISEASE_LABELS, contribution)}
-
-    return contribution_dict
+def compute_weight_differences(full_weights, subset_weights):
+    """Calculate how much weights change from full to subset"""
+    differences = {}
+    for disease in DISEASE_LABELS:
+        diff = subset_weights[disease] - full_weights[disease]
+        pct_change = (diff / full_weights[disease]) * 100 if full_weights[disease] > 0 else 0
+        differences[disease] = {'abs': diff, 'pct': pct_change}
+    return differences
 
 
 def create_visualization(splits_dir: Path, output_path: Path):
-    """Create comprehensive class balance mitigation visualization"""
+    """Create full vs subset comparison visualization"""
     
-    # Load data
-    disease_counts, total_samples, no_finding = load_class_distribution(splits_dir)
-    class_weights = compute_class_weights(disease_counts, total_samples)
-    effective_counts = compute_effective_sampling(disease_counts, total_samples, subset_fraction=0.2)
-    contribution_counts = compute_effective_contribution(
-        disease_counts,
-        class_weights,
-        total_samples,
-        subset_fraction=0.2
-    )
+    # Load both datasets
+    full_csv = splits_dir / "train.csv"
+    subset_csv = splits_dir / "train_subset.csv"
     
-    # Sort by original count (descending)
-    sorted_diseases = sorted(disease_counts.items(), key=lambda x: x[1], reverse=True)
+    if not subset_csv.exists():
+        print(f"✗ Error: Subset not found at {subset_csv}")
+        print("  Run: python scripts/create_smart_subset.py")
+        return
+    
+    full_counts, full_total, full_no_finding = load_class_distribution(full_csv)
+    subset_counts, subset_total, subset_no_finding = load_class_distribution(subset_csv)
+    
+    full_weights = compute_class_weights(full_counts, full_total)
+    subset_weights = compute_class_weights(subset_counts, subset_total)
+    weight_diffs = compute_weight_differences(full_weights, subset_weights)
+    
+    # Sort by full dataset count (descending)
+    sorted_diseases = sorted(full_counts.items(), key=lambda x: x[1], reverse=True)
     diseases = [d for d, _ in sorted_diseases]
     
     # Prepare data for plotting
-    original_counts = np.array([disease_counts[d] for d in diseases])
-    weights = np.array([class_weights[d] for d in diseases])
-    effective = np.array([effective_counts[d] for d in diseases])
-    contribution = np.array([contribution_counts[d] for d in diseases])
+    full_vals = np.array([full_counts[d] for d in diseases])
+    subset_vals = np.array([subset_counts[d] for d in diseases])
+    full_wts = np.array([full_weights[d] for d in diseases])
+    subset_wts = np.array([subset_weights[d] for d in diseases])
     
-    # Create figure with 4 subplots
-    fig = plt.figure(figsize=(16, 12))
-    gs = fig.add_gridspec(3, 2, hspace=0.6, wspace=0.35)
+    # Create figure
+    fig = plt.figure(figsize=(18, 12))
+    gs = fig.add_gridspec(3, 2, hspace=0.45, wspace=0.35)
     
-    # Color palette
-    colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(diseases)))
+    # Colors
+    color_full = '#e08e79'
+    color_subset = '#59a14f'
     
     # ========================================================================
-    # Plot 1: Original Imbalanced Distribution (BEFORE)
+    # Plot 1: Disease counts comparison (Full vs Subset)
     # ========================================================================
     ax1 = fig.add_subplot(gs[0, :])
-    bars1 = ax1.barh(diseases, original_counts, color=colors, edgecolor='black', linewidth=0.5)
-    ax1.set_xlabel('Number of Cases', fontsize=12, fontweight='bold')
-    ax1.set_title('BEFORE: Original Class Distribution (Severely Imbalanced)\n', 
-                  fontsize=14, fontweight='bold', color='darkred')
+    y_pos = np.arange(len(diseases))
+    width = 0.35
+    
+    ax1.barh(y_pos - width/2, full_vals, width, label='Full Train', 
+             color=color_full, edgecolor='black', linewidth=0.5)
+    ax1.barh(y_pos + width/2, subset_vals, width, label='Smart Subset', 
+             color=color_subset, edgecolor='black', linewidth=0.5)
+    
+    ax1.set_yticks(y_pos)
+    ax1.set_yticklabels(diseases)
     ax1.invert_yaxis()
+    ax1.set_xlabel('Disease Count', fontsize=12, fontweight='bold')
+    ax1.set_title('Disease Distribution: Full Train vs Smart Subset', 
+                  fontsize=14, fontweight='bold')
+    ax1.legend(fontsize=10)
     ax1.grid(axis='x', alpha=0.3)
     
-    # Add count labels
-    for i, (bar, count) in enumerate(zip(bars1, original_counts)):
-        percentage = (count / total_samples) * 100
-        ax1.text(count, i, f' {count:,} ({percentage:.1f}%)', 
-                va='center', fontsize=9, fontweight='bold')
-    
-    # Highlight imbalance ratio
-    imbalance_ratio = original_counts.max() / original_counts.min()
-    ax1.text(0.98, 0.02, f'Imbalance Ratio: {imbalance_ratio:.1f}:1',
-            transform=ax1.transAxes, ha='right', fontsize=11,
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    # Add retention percentages
+    for i, (disease, full_val, subset_val) in enumerate(zip(diseases, full_vals, subset_vals)):
+        retention_pct = (subset_val / full_val * 100) if full_val > 0 else 0
+        ax1.text(max(full_val, subset_val), i, f' {retention_pct:.0f}%', 
+                va='center', fontsize=8, style='italic')
     
     # ========================================================================
-    # Plot 2: Class Weights (Loss Function Balancing)
+    # Plot 2: Class weights comparison (Full vs Subset)
     # ========================================================================
     ax2 = fig.add_subplot(gs[1, 0])
-    bars2 = ax2.barh(diseases, weights, color=colors[::-1], edgecolor='black', linewidth=0.5)
-    ax2.set_xlabel('Weight Factor', fontsize=11, fontweight='bold')
-    ax2.set_title('Strategy 1: Weighted Loss Function\n(Higher weights for rare diseases)\n',
-                  fontsize=12, fontweight='bold', color='darkgreen')
+    ax2.barh(y_pos - width/2, full_wts, width, label='Full Train Weights',
+             color=color_full, edgecolor='black', linewidth=0.5)
+    ax2.barh(y_pos + width/2, subset_wts, width, label='Subset Weights',
+             color=color_subset, edgecolor='black', linewidth=0.5)
+    
+    ax2.set_yticks(y_pos)
+    ax2.set_yticklabels(diseases)
     ax2.invert_yaxis()
+    ax2.set_xlabel('Loss Weight', fontsize=11, fontweight='bold')
+    ax2.set_title('Recalculated Class Weights\n(Subset-specific for training)', 
+                  fontsize=12, fontweight='bold')
+    ax2.legend(fontsize=9)
     ax2.set_xscale('log')
     ax2.grid(axis='x', alpha=0.3)
     
-    # Add weight labels
-    for i, (bar, weight) in enumerate(zip(bars2, weights)):
-        ax2.text(weight, i, f' {weight:.2f}×', va='center', fontsize=8)
-    
     # ========================================================================
-    # Plot 3: Effective Sampling Distribution (WeightedRandomSampler)
+    # Plot 3: Weight change percentage
     # ========================================================================
     ax3 = fig.add_subplot(gs[1, 1])
-    bars3 = ax3.barh(diseases, effective, color='steelblue', edgecolor='black', linewidth=0.5)
-    ax3.set_xlabel('Expected Samples per Epoch (20% subset)', fontsize=11, fontweight='bold')
-    ax3.set_title('Strategy 2: Weighted Random Sampling\n'
-                  '(Inverse-frequency weights: w = 1/(count+1))\n',
-                  fontsize=12, fontweight='bold', color='darkgreen')
+    weight_pct_changes = np.array([weight_diffs[d]['pct'] for d in diseases])
+    colors_change = ['green' if x > 0 else 'red' for x in weight_pct_changes]
+    
+    ax3.barh(diseases, weight_pct_changes, color=colors_change, 
+             edgecolor='black', linewidth=0.5, alpha=0.7)
+    ax3.set_xlabel('Weight Change (%)', fontsize=11, fontweight='bold')
+    ax3.set_title('Impact of Smart Subset on Weights\n(% change from full train)',
+                  fontsize=12, fontweight='bold')
     ax3.invert_yaxis()
+    ax3.axvline(0, color='black', linewidth=0.8, linestyle='--')
     ax3.grid(axis='x', alpha=0.3)
     
-    # Add sample labels
-    for i, (bar, count) in enumerate(zip(bars3, effective)):
-        ax3.text(count, i, f' {count:.0f}', va='center', fontsize=8)
-    
     # ========================================================================
-    # Plot 4: Combined Effect (Sampler + Weighted Loss)
+    # Plot 4: Imbalance ratio comparison
     # ========================================================================
     ax4 = fig.add_subplot(gs[2, :])
     
-    # Normalize to percentages for fair comparison
-    original_pct = (original_counts / original_counts.sum()) * 100
-    contribution_pct = (contribution / contribution.sum()) * 100
+    full_imbalance = full_vals.max() / full_vals.min()
+    subset_imbalance = subset_vals.max() / subset_vals.min()
     
-    x = np.arange(len(diseases))
+    full_no_finding_ratio = full_no_finding / full_total
+    subset_no_finding_ratio = subset_no_finding / subset_total
+    
+    metrics = {
+        'Dataset Size': [full_total, subset_total],
+        'Imbalance Ratio\n(max/min)': [full_imbalance, subset_imbalance],
+        'No Finding\nRatio': [full_no_finding_ratio, subset_no_finding_ratio],
+        'Sick Images': [full_total - full_no_finding, subset_total - subset_no_finding]
+    }
+    
+    x_pos = np.arange(len(metrics))
     width = 0.35
     
-    bars_orig = ax4.bar(x - width/2, original_pct, width, 
-                       label='Original (Imbalanced)', 
-                       color='coral', edgecolor='black', linewidth=0.5)
-    bars_eff = ax4.bar(x + width/2, contribution_pct, width,
-                      label='Combined Effect (Sampler × Loss Weight)',
-                      color='lightgreen', edgecolor='black', linewidth=0.5)
+    full_metrics = [metrics[k][0] for k in metrics.keys()]
+    subset_metrics = [metrics[k][1] for k in metrics.keys()]
     
-    ax4.set_ylabel('Percentage of Total Samples (%)', fontsize=11, fontweight='bold')
-    ax4.set_xlabel('Disease Class', fontsize=11, fontweight='bold')
-    ax4.set_title('\nCombined Effect: Weighted Sampling + Weighted Loss\n'
-                 'Approximate per-class contribution to training signal\n',
-                  fontsize=13, fontweight='bold', color='darkblue')
-    ax4.set_xticks(x)
-    ax4.set_xticklabels(diseases, rotation=45, ha='right', fontsize=9)
-    ax4.legend(fontsize=11, loc='upper left')
+    # Normalize for comparison
+    normalized_full = [v / full_total for v in full_metrics]
+    normalized_subset = [v / subset_total for v in subset_metrics]
+    normalized_full[1] = full_imbalance / 100  # Scale imbalance ratio
+    normalized_subset[1] = subset_imbalance / 100
+    
+    ax4.bar(x_pos - width/2, [full_metrics[0], full_imbalance, full_no_finding_ratio*100, full_metrics[3]], 
+            width, label='Full Train', color=color_full, edgecolor='black', linewidth=0.6)
+    ax4.bar(x_pos + width/2, [subset_metrics[0], subset_imbalance, subset_no_finding_ratio*100, subset_metrics[3]], 
+            width, label='Smart Subset', color=color_subset, edgecolor='black', linewidth=0.6)
+    
+    ax4.set_xticks(x_pos)
+    ax4.set_xticklabels(['Dataset Size', 'Imbalance\nRatio (max/min)', 'No Finding\n(%)', 'Sick Images'])
+    ax4.set_title('Key Metrics Comparison', fontsize=13, fontweight='bold')
+    ax4.legend(fontsize=10)
     ax4.grid(axis='y', alpha=0.3)
     
-    # Add balance improvement metric using combined contribution
-    cv_before = np.std(original_pct) / np.mean(original_pct)
-    cv_after = np.std(contribution_pct) / np.mean(contribution_pct)
-    rare_emphasis = contribution.max() / contribution.min()
-    
-    ax4.text(0.98, 0.95, 
-            f'Rare-Class Emphasis (max/min): {rare_emphasis:.1f}:1\n'
-            f'CV Before: {cv_before:.2f} → After: {cv_after:.2f}',
-            transform=ax4.transAxes, ha='right', va='top', fontsize=10,
-            bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
+    # Add value labels
+    for i, (f_val, s_val) in enumerate(zip([full_metrics[0], full_imbalance, full_no_finding_ratio*100, full_metrics[3]],
+                                             [subset_metrics[0], subset_imbalance, subset_no_finding_ratio*100, subset_metrics[3]])):
+        if i == 1:  # Imbalance ratio
+            ax4.text(i - width/2, f_val, f'{f_val:.1f}:1', ha='center', va='bottom', fontsize=9)
+            ax4.text(i + width/2, s_val, f'{s_val:.1f}:1', ha='center', va='bottom', fontsize=9)
+        elif i == 2:  # No Finding %
+            ax4.text(i - width/2, f_val, f'{f_val:.1f}%', ha='center', va='bottom', fontsize=9)
+            ax4.text(i + width/2, s_val, f'{s_val:.1f}%', ha='center', va='bottom', fontsize=9)
+        else:
+            ax4.text(i - width/2, f_val, f'{int(f_val):,}', ha='center', va='bottom', fontsize=9)
+            ax4.text(i + width/2, s_val, f'{int(s_val):,}', ha='center', va='bottom', fontsize=9)
     
     # ========================================================================
-    # Overall title and footer
+    # Overall title and save
     # ========================================================================
-    fig.suptitle('Class Imbalance Mitigation Strategies in Training',
+    fig.suptitle('Training Data Balance: Full vs Smart Subset Analysis',
                  fontsize=16, fontweight='bold', y=0.98)
-    
-    fig.text(0.5, 0.01,
-             f'Dataset: {total_samples:,} training images | '
-             f'No Finding: {no_finding:,} ({no_finding/total_samples*100:.1f}%) | '
-             f'14 disease classes (multi-label) | '
-             f'Training subset: 20% with weighted sampling',
-             ha='center', fontsize=9, style='italic', color='dimgray')
     
     # Save
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.tight_layout(rect=[0, 0.06, 1, 0.96])
-    plt.subplots_adjust(hspace=0.6, wspace=0.35)
+    plt.tight_layout(rect=[0, 0.02, 1, 0.96])
     plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.close()
     
-    print(f"\n✓ Class balance visualization saved to: {output_path}")
+    print(f"\n✓ Balance analysis saved to: {output_path}")
     
     # Print summary
     print("\n" + "=" * 70)
-    print("CLASS IMBALANCE MITIGATION SUMMARY")
+    print("TRAINING DATA BALANCE ANALYSIS")
     print("=" * 70)
-    print(f"\nOriginal Imbalance Ratio: {imbalance_ratio:.1f}:1")
-    print(f"Most frequent: {diseases[0]} ({original_counts[0]:,} cases)")
-    print(f"Least frequent: {diseases[-1]} ({original_counts[-1]:,} cases)")
-    print(f"\nMitigation Strategies Applied:")
-    print(f"  1. ✓ Weighted BCE Loss (inverse frequency class weights)")
-    print(f"  2. ✓ WeightedRandomSampler (balanced batch composition)")
-    print(f"  3. ✓ Stratified data splits (preserve distribution)")
-    print(f"\nRare-Class Emphasis (Sampler × Loss, max/min): {rare_emphasis:.1f}:1")
-    print(f"Coefficient of Variation: {cv_before:.2f} → {cv_after:.2f}")
+    print(f"\nFull Training Set:")
+    print(f"  Total: {full_total:,} images")
+    print(f"  Sick: {full_total - full_no_finding:,}")
+    print(f"  No Finding: {full_no_finding:,} ({full_no_finding_ratio*100:.1f}%)")
+    print(f"  Imbalance ratio: {full_imbalance:.1f}:1")
+    
+    print(f"\nSmart Subset (for baseline training):")
+    print(f"  Total: {subset_total:,} images")
+    print(f"  Sick: {subset_total - subset_no_finding:,}")
+    print(f"  No Finding: {subset_no_finding:,} ({subset_no_finding_ratio*100:.1f}%)")
+    print(f"  Imbalance ratio: {subset_imbalance:.1f}:1")
+    
+    print(f"\nBalancing Improvements:")
+    imbalance_reduction = ((full_imbalance - subset_imbalance) / full_imbalance) * 100
+    print(f"  Imbalance ratio reduced by: {imbalance_reduction:.1f}%")
+    print(f"  No Finding ratio: {full_no_finding_ratio*100:.1f}% → {subset_no_finding_ratio*100:.1f}%")
+    
+    print(f"\nWeight Recalculation (largest changes):")
+    sorted_diffs = sorted(weight_diffs.items(), key=lambda x: abs(x[1]['pct']), reverse=True)
+    for disease, diff in sorted_diffs[:5]:
+        sign = "+" if diff['pct'] > 0 else ""
+        print(f"  {disease:<25} {sign}{diff['pct']:>6.1f}%")
+    
     print("=" * 70)
 
 
@@ -286,7 +287,7 @@ def main():
     # Paths
     splits_dir = project_root / "data" / "splits"
     results_dir = project_root / "results"
-    output_path = results_dir / "class_balance_mitigation.png"
+    output_path = results_dir / "subset_balance_analysis.png"
     
     # Validate
     if not splits_dir.exists():
@@ -294,19 +295,20 @@ def main():
         return
     
     print("=" * 70)
-    print("CLASS BALANCE MITIGATION VISUALIZATION")
+    print("TRAINING DATA BALANCE ANALYSIS")
     print("=" * 70)
-    print(f"Analyzing training data from: {splits_dir}")
+    print(f"Analyzing full train vs smart subset")
     print(f"Output: {output_path}")
     print()
     
     # Create visualization
     create_visualization(splits_dir, output_path)
     
-    print(f"\nUse this visualization alongside 01_eda_overview.png to show:")
-    print(f"  • Problem: Severe class imbalance (before)")
-    print(f"  • Solution: Multi-strategy mitigation (after)")
-    print(f"  • Impact: Quantified improvement in balance")
+    print(f"\nThis visualization shows:")
+    print(f"  • Disease distribution changes (full → subset)")
+    print(f"  • Recalculated class weights for subset-specific training")
+    print(f"  • Imbalance ratio improvements")
+    print(f"  • No Finding balance (50/50 target)")
 
 
 if __name__ == "__main__":

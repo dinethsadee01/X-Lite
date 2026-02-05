@@ -43,14 +43,14 @@ def get_augmentation_pipeline(
         aug_transforms = [
             A.HorizontalFlip(p=0.5),
             A.Rotate(limit=15, p=0.4),
-            A.ShiftScaleRotate(
-                shift_limit=0.05,
-                scale_limit=0.1,
-                rotate_limit=15,
+            A.Affine(
+                translate_percent={'x': (-0.05, 0.05), 'y': (-0.05, 0.05)},
+                scale=(0.9, 1.1),
+                rotate=(-15, 15),
                 p=0.3
             ),
             A.OneOf([
-                A.GaussNoise(var_limit=(10.0, 50.0), p=1.0),
+                A.GaussNoise(p=1.0),
                 A.GaussianBlur(blur_limit=3, p=1.0),
             ], p=0.2),
             A.RandomBrightnessContrast(
@@ -63,14 +63,14 @@ def get_augmentation_pipeline(
         aug_transforms = [
             A.HorizontalFlip(p=0.5),
             A.Rotate(limit=20, p=0.5),
-            A.ShiftScaleRotate(
-                shift_limit=0.1,
-                scale_limit=0.15,
-                rotate_limit=20,
+            A.Affine(
+                translate_percent={'x': (-0.1, 0.1), 'y': (-0.1, 0.1)},
+                scale=(0.85, 1.15),
+                rotate=(-20, 20),
                 p=0.4
             ),
             A.OneOf([
-                A.GaussNoise(var_limit=(10.0, 80.0), p=1.0),
+                A.GaussNoise(p=1.0),
                 A.GaussianBlur(blur_limit=5, p=1.0),
                 A.MotionBlur(blur_limit=5, p=1.0),
             ], p=0.3),
