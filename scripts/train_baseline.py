@@ -1,7 +1,7 @@
 """
 Baseline Student Training Script
 =================================
-Trains all 6 hybrid CNN-Transformer student models on subset of data.
+Trains all 6 hybrid CNN-Transformer student models on a smart 20% subset of data.
 
 Purpose: Establish baselines before knowledge distillation experiments.
 
@@ -14,7 +14,7 @@ Models Trained:
 6. shufflenet_v2_x1_0_performer
 
 Training Configuration:
-- Dataset: 20% of training data (stratified sampling)
+- Dataset: Smart 20% subset (rare cases preserved, common cases sampled, 1:1 with No Finding)
 - Epochs: 30 (with early stopping patience=10)
 - Batch size: 32
 - Optimizer: AdamW (lr=1e-4, weight_decay=1e-5)
@@ -111,6 +111,7 @@ def train_single_model(
     train_loader,
     val_loader,
     device: torch.device,
+    train_split_csv: Path,
     num_epochs: int = 30,
     learning_rate: float = 1e-4,
     use_clahe: bool = True
@@ -146,7 +147,7 @@ def train_single_model(
     
     # Calculate class weights for loss
     # Load training labels to compute weights
-    train_df = pd.read_csv(project_root / "data" / "splits" / "train.csv")
+    train_df = pd.read_csv(train_split_csv)
     
     # Rename columns if needed
     if 'Image Index' in train_df.columns:
@@ -252,10 +253,10 @@ def train_single_model(
 def main():
     """Run baseline training for all 6 student models"""
     print("\n" + "=" * 70)
-    print("BASELINE STUDENT MODEL TRAINING (FULL DATASET)")
+    print("BASELINE STUDENT MODEL TRAINING (SMART 20% SUBSET)")
     print("=" * 70)
     print(f"Training 6 hybrid CNN-Transformer models")
-    print(f"Dataset: 100% of training data (stratified, full 78,484 samples)")
+    print("Dataset: Smart subset from training data")
     print(f"Epochs: 50 (early stopping patience=10)")
     print(f"Loss: Weighted BCE with class weights")
     print(f"Metrics: AUC, F1, PR-AUC, Precision, Recall")
@@ -272,7 +273,8 @@ def main():
     
     # Paths - use CLAHE cache for faster data loading
     clahe_cache_dir = project_root / "data" / "clahe_cache"
-    train_csv = project_root / "data" / "splits" / "train.csv"
+    train_subset_csv = project_root / "data" / "splits" / "train_subset.csv"
+    train_csv = train_subset_csv if train_subset_csv.exists() else project_root / "data" / "splits" / "train.csv"
     val_csv = project_root / "data" / "splits" / "val.csv"
     test_csv = project_root / "data" / "splits" / "test.csv"
 
@@ -292,7 +294,11 @@ def main():
     # Validation: basic transforms only (CLAHE already baked in)
     val_transform = get_medical_transforms(use_clahe=False, use_denoising=False)
     
-    # Create full data loaders from cached CLAHE images
+    if not train_subset_csv.exists():
+        print("\n⚠️  train_subset.csv not found. Using full train.csv instead.")
+        print("   Run: python scripts/create_smart_subset.py")
+
+    # Create data loaders from cached CLAHE images
     # num_workers can be >0 because cached images are plain files
     loaders = get_balanced_data_loaders(
         data_dir=str(clahe_cache_dir),
@@ -306,22 +312,11 @@ def main():
         use_weighted_sampler=False
     )
     
-    # ========================================================================
-    # USING FULL DATASET (Commented out 20% subset code)
-    # ========================================================================
-    # print("\nCreating 20% training subset...")
-    # train_loader, val_loader = create_subset_loaders(
-    #     loaders['train'],
-    #     loaders['val'],
-    #     subset_fraction=0.2,
-    #     seed=42
-    # )
-    
-    # Use full loaders directly
+    # Use loaders directly
     train_loader = loaders['train']
     val_loader = loaders['val']
     
-    print(f"\n✅ Using FULL training dataset:")
+    print(f"\n✅ Using training split: {train_csv}")
     print(f"  Train batches: {len(train_loader)}")
     print(f"  Val batches: {len(val_loader)}")
     print(f"  Train samples: ~{len(train_loader) * 32:,}")
@@ -368,6 +363,7 @@ def main():
                 train_loader=train_loader,
                 val_loader=val_loader,
                 device=device,
+                train_split_csv=train_csv,
                 num_epochs=50,
                 learning_rate=1e-4,
                 use_clahe=True
