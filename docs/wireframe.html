@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-Lite Application Wireframes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f5f5f5;
+            padding: 40px 20px;
+        }
+
+        .wireframe-section {
+            max-width: 1200px;
+            margin: 0 auto 60px;
+            background: white;
+            border: 3px solid #333;
+            page-break-after: always;
+        }
+
+        .wireframe-title {
+            background: #e0e0e0;
+            padding: 15px;
+            border-bottom: 2px solid #333;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Header */
+        .header {
+            background: #1976d2;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 3px solid #333;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        /* Main Container */
+        .main-container {
+            padding: 40px;
+            min-height: 500px;
+        }
+
+        /* Upload State */
+        .upload-zone {
+            border: 3px dashed #666;
+            padding: 80px 40px;
+            text-align: center;
+            background: #fafafa;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .upload-button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .file-types {
+            margin-top: 20px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* Loading State */
+        .loading-container {
+            text-align: center;
+            padding: 100px 40px;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid #e0e0e0;
+            border-top: 8px solid #1976d2;
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .loading-subtext {
+            color: #999;
+            font-size: 16px;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 8px;
+            background: #e0e0e0;
+            margin: 30px auto 0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 70%;
+            height: 100%;
+            background: #1976d2;
+            animation: progress 2s ease-in-out infinite;
+        }
+
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        /* Results Display */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 40px;
+            border-bottom: 2px solid #e0e0e0;
+            background: #fafafa;
+        }
+
+        .action-buttons button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .results-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 40px;
+        }
+
+        .image-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .image-box {
+            border: 2px solid #ccc;
+            padding: 20px;
+            background: #f9f9f9;
+            text-align: center;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .predictions-column {
+            border: 2px solid #e0e0e0;
+            padding: 30px;
+            background: #fafafa;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .positive-findings {
+            background: #fff3e0;
+            border-left: 4px solid #f9a825;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+
+        .finding-item {
+            margin: 8px 0;
+            color: #333;
+        }
+
+        .high-risk {
+            color: #c62828;
+        }
+
+        .medium-risk {
+            color: #f9a825;
+        }
+
+        .low-risk {
+            color: #2e7d32;
+        }
+
+        .prediction-item {
+            margin-bottom: 15px;
+        }
+
+        .prediction-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .probability-bar {
+            height: 24px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .probability-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .legend {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        /* Error State */
+        .error-container {
+            text-align: center;
+            padding: 80px 40px;
+        }
+
+        .error-box {
+            background: #ffebee;
+            border: 3px solid #c62828;
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .error-icon {
+            font-size: 64px;
+            color: #c62828;
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 24px;
+            color: #c62828;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .error-message {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .retry-button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        /* PDF Report */
+        .report-container {
+            padding: 40px;
+            background: white;
+        }
+
+        .report-header {
+            border-bottom: 3px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .report-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .report-date {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .report-section {
+            margin-bottom: 40px;
+        }
+
+        .report-section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        .report-image-box {
+            border: 2px solid #ccc;
+            padding: 20px;
+            background: #f9f9f9;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .findings-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .findings-list li {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-left: 4px solid #1976d2;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .report-table th,
+        .report-table td {
+            border: 1px solid #ccc;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .report-table th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .disclaimer {
+            background: #fff3e0;
+            border: 2px solid #f9a825;
+            padding: 20px;
+            margin-top: 40px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .disclaimer strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        /* User Flow Diagram */
+        .flow-container {
+            padding: 60px;
+            text-align: center;
+        }
+
+        .flow-step {
+            display: inline-block;
+            border: 3px solid #333;
+            padding: 30px 40px;
+            margin: 20px;
+            background: white;
+            border-radius: 8px;
+            min-width: 200px;
+        }
+
+        .flow-arrow {
+            display: inline-block;
+            font-size: 36px;
+            margin: 20px;
+            color: #333;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .wireframe-section {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Upload State -->
+    <div class="wireframe-section">
+        <div class="wireframe-title">1. Main Page - Upload State</div>
+        <div class="header">
+            <h1>X-LITE</h1>
+            <p>Chest X-Ray Disease Detection</p>
+        </div>
+        <div class="main-container">
+            <div class="upload-zone">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Upload Chest X-Ray</div>
+                <div style="color: #999; font-size: 16px; margin: 15px 0;">Drag & Drop</div>
+                <div style="color: #999; font-size: 14px; margin-bottom: 20px;">or</div>
+                <button class="upload-button">Choose File</button>
+                <div class="file-types">Supported: PNG, JPG, JPEG, DCM</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Loading State -->
+    <div class="wireframe-section">
+        <div class="wireframe-title">2. Loading State</div>
+        <div class="header">
+            <h1>X-LITE</h1>
+            <p>Chest X-Ray Disease Detection</p>
+        </div>
+        <div class="main-container">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">⌛ Loading...</div>
+                <div class="loading-subtext">Analyzing X-Ray Image</div>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Results Display State -->
+    <div class="wireframe-section">
+        <div class="wireframe-title">3. Results Display State</div>
+        <div class="header">
+            <h1>X-LITE</h1>
+            <p>Chest X-Ray Disease Detection</p>
+        </div>
+        <div class="results-header">
+            <div></div>
+            <div class="action-buttons">
+                <button>Reset</button>
+                <button>Download Report</button>
+            </div>
+        </div>
+        <div class="results-content">
+            <div class="image-column">
+                <div class="image-box">
+                    <div>X-RAY IMAGE<br>(Original)</div>
+                </div>
+                <div class="image-box">
+                    <div>GRAD-CAM<br>HEATMAP<br>(Highlighted areas)</div>
+                </div>
+            </div>
+            <div class="predictions-column">
+                <div class="section-title">PREDICTION RESULTS</div>
+                
+                <div class="positive-findings">
+                    <strong>✓ Positive Findings:</strong>
+                    <div class="finding-item high-risk">• Pneumonia (High Risk)</div>
+                    <div class="finding-item medium-risk">• Infiltration (Medium Risk)</div>
+                </div>
+
+                <div class="section-title" style="font-size: 16px;">Disease Probabilities:</div>
+
+                <div class="prediction-item">
+                    <div class="prediction-label">
+                        <span>Pneumonia</span>
+                        <span class="high-risk">89.3%</span>
+                    </div>
+                    <div class="probability-bar">
+                        <div class="probability-fill" style="width: 89.3%; background: #c62828;"></div>
+                    </div>
+                </div>
+
+                <div class="prediction-item">
+                    <div class="prediction-label">
+                        <span>Infiltration</span>
+                        <span class="medium-risk">67.2%</span>
+                    </div>
+                    <div class="probability-bar">
+                        <div class="probability-fill" style="width: 67.2%; background: #f9a825;"></div>
+                    </div>
+                </div>
+
+                <div class="prediction-item">
+                    <div class="prediction-label">
+                        <span>Effusion</span>
+                        <span class="low-risk">45.1%</span>
+                    </div>
+                    <div class="probability-bar">
+                        <div class="probability-fill" style="width: 45.1%; background: #90caf9;"></div>
+                    </div>
+                </div>
+
+                <div class="prediction-item">
+                    <div class="prediction-label">
+                        <span>Atelectasis</span>
+                        <span class="low-risk">32.7%</span>
+                    </div>
+                    <div class="probability-bar">
+                        <div class="probability-fill" style="width: 32.7%; background: #90caf9;"></div>
+                    </div>
+                </div>
+
+                <div class="prediction-item">
+                    <div class="prediction-label">
+                        <span>Cardiomegaly</span>
+                        <span class="low-risk">28.4%</span>
+                    </div>
+                    <div class="probability-bar">
+                        <div class="probability-fill" style="width: 28.4%; background: #90caf9;"></div>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <strong style="font-size: 14px; margin-bottom: 10px; display: block;">Legend:</strong>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #c62828;"></div>
+                        <span>High Risk (&gt;70%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f9a825;"></div>
+                        <span>Medium Risk (50-70%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2e7d32;"></div>
+                        <span>Low Risk (&lt;50%)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Error State -->
+    <div class="wireframe-section">
+        <div class="wireframe-title">4. Error State</div>
+        <div class="header">
+            <h1>X-LITE</h1>
+            <p>Chest X-Ray Disease Detection</p>
+        </div>
+        <div class="main-container">
+            <div class="error-container">
+                <div class="error-box">
+                    <div class="error-icon">⚠</div>
+                    <div class="error-title">Error</div>
+                    <div class="error-message">
+                        Failed to upload image. Please try again.<br>
+                        Supported formats: PNG, JPG, JPEG, DCM
+                    </div>
+                </div>
+                <button class="retry-button">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. PDF Report Layout -->
+    <div class="wireframe-section">
+        <div class="wireframe-title">5. PDF Report Layout</div>
+        <div class="report-container">
+            <div class="report-header">
+                <div class="report-title">X-LITE DIAGNOSTIC REPORT</div>
+                <div class="report-date">Generated: February 4, 2026 - 14:30:25</div>
+            </div>
+
+            <div class="report-section">
+                <div class="report-section-title">Patient Image</div>
+                <div class="report-image-box">X-Ray Image</div>
+            </div>
+
+            <div class="report-section">
+                <div class="report-section-title">Positive Findings</div>
+                <ul class="findings-list">
+                    <li class="high-risk">• Pneumonia - 89.3% (High Risk)</li>
+                    <li class="medium-risk">• Infiltration - 67.2% (Medium Risk)</li>
+                </ul>
+            </div>
+
+            <div class="report-section">
+                <div class="report-section-title">Complete Analysis</div>
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Disease</th>
+                            <th>Probability</th>
+                            <th>Risk Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Pneumonia</td>
+                            <td>89.3%</td>
+                            <td class="high-risk">High</td>
+                        </tr>
+                        <tr>
+                            <td>Infiltration</td>
+                            <td>67.2%</td>
+                            <td class="medium-risk">Medium</td>
+                        </tr>
+                        <tr>
+                            <td>Effusion</td>
+                            <td>45.1%</td>
+                            <td class="low-risk">Low</td>
+                        </tr>
+                        <tr>
+                            <td>Atelectasis</td>
+                            <td>32.7%</td>
+                            <td class="low-risk">Low</td>
+                        </tr>
+                        <tr>
+                            <td>Cardiomegaly</td>
+                            <td>28.4%</td>
+                            <td class="low-risk">Low</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: #999;">...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="report-section">
+                <div class="report-section-title">Grad-CAM Visualization</div>
+                <div class="report-image-box">Heatmap</div>
+            </div>
+
+            <div class="disclaimer">
+                <strong>DISCLAIMER:</strong>
+                This report is generated by AI and should be reviewed by a qualified medical professional. This tool is designed to assist healthcare providers and should not be used as the sole basis for medical diagnosis or treatment decisions.
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. User Flow Diagram -->
+    <div class="wireframe-section">
+        <div class="wireframe-title">6. User Flow Diagram</div>
+        <div class="flow-container">
+            <div style="margin-bottom: 40px;">
+                <div class="flow-step">START</div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div style="margin: 40px 0;">
+                <div class="flow-step">Upload X-Ray</div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div style="margin: 40px 0; position: relative;">
+                <div class="flow-step">Loading Analysis</div>
+                <div style="position: absolute; right: -200px; top: 50%; transform: translateY(-50%);">
+                    <div class="flow-arrow" style="display: inline;">→</div>
+                    <div class="flow-step" style="background: #ffebee; border-color: #c62828;">Error Message</div>
+                </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div style="margin: 40px 0;">
+                <div class="flow-step">Display Results</div>
+            </div>
+            <div style="margin: 40px 0;">
+                <div class="flow-step" style="background: #e3f2fd;">Download Report</div>
+                <span style="margin: 0 20px; font-size: 24px;">or</span>
+                <div class="flow-step" style="background: #e3f2fd;">Reset</div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div style="margin-top: 40px;">
+                <div class="flow-step">Upload (Restart)</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
