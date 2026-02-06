@@ -379,7 +379,9 @@ def get_balanced_data_loaders(
     # Rename columns if needed (EDA notebook uses 'Image Index', 'Finding Labels')
     if 'Image Index' in train_df.columns:
         train_df = train_df.rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'})
+    if 'Image Index' in val_df.columns:
         val_df = val_df.rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'})
+    if 'Image Index' in test_df.columns:
         test_df = test_df.rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'})
     
     # Create datasets

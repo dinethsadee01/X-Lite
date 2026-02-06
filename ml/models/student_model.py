@@ -26,6 +26,7 @@ Total Variants: 3 backbones × 2 attention types = 6 models
 import torch
 import torch.nn as nn
 import timm
+import torchvision.models as tv_models
 from typing import Optional, Tuple, Callable
 import math
 
@@ -372,28 +373,69 @@ class HybridStudentModel(nn.Module):
         Returns:
             Tuple[nn.Module, int]: (backbone_model, feature_dimension)
         """
-        supported_backbones = {
-            'efficientnet_b0',
-            'mobilenet_v3_large',
-            'shufflenet_v2_x1_0'
-        }
+        # Torchvision models (not available in timm)
+        torchvision_models = {'shufflenet_v2_x1_0'}
+        
+        # timm models
+        timm_models = {'efficientnet_b0', 'mobilenetv3_large_100'}
+        
+        supported_backbones = timm_models | torchvision_models
 
         if backbone not in supported_backbones:
             raise ValueError(
                 f"Unsupported backbone: {backbone}. "
-                f"Choose from: 'efficientnet_b0', 'mobilenet_v3_large', 'shufflenet_v2_x1_0'"
+                f"Choose from: {', '.join(sorted(supported_backbones))}"
             )
 
-        model = timm.create_model(
-            backbone,
-            pretrained=pretrained,
-            num_classes=0,
-            global_pool=''
-        )
+        # Handle torchvision models
+        if backbone in torchvision_models:
+            if backbone == 'shufflenet_v2_x1_0':
+                # Load pretrained ShuffleNetV2 from torchvision
+                weights = tv_models.ShuffleNet_V2_X1_0_Weights.DEFAULT if pretrained else None
+                full_model = tv_models.shufflenet_v2_x1_0(weights=weights)
+                
+                # Extract feature extractor (remove classifier)
+                # ShuffleNetV2 structure: conv1 -> maxpool -> stage2-4 -> conv5
+                feature_extractor = nn.Sequential(
+                    full_model.conv1,
+                    full_model.maxpool,
+                    full_model.stage2,
+                    full_model.stage3,
+                    full_model.stage4,
+                    full_model.conv5
+                )
+                
+                # ShuffleNetV2 x1.0 outputs 1024 channels after conv5
+                feature_dim = 1024
+                
+                # Wrap to return list format (consistent with timm features_only)
+                class TorchvisionWrapper(nn.Module):
+                    def __init__(self, feature_extractor):
+                        super().__init__()
+                        self.features = feature_extractor
+                    
+                    def forward(self, x):
+                        return [self.features(x)]  # Return as list
+                
+                model = TorchvisionWrapper(feature_extractor)
+                return model, feature_dim
+        
+        # Handle timm models
+        else:
+            # Use features_only=True to get raw spatial feature maps (B, C, H, W)
+            # This prevents MobileNetV3 and others from applying final head layers
+            model = timm.create_model(
+                backbone,
+                pretrained=pretrained,
+                features_only=True,
+                out_indices=[-1]  # Only return the last feature stage
+            )
 
-        feature_dim = model.num_features
+            # Get feature dimension from the last stage
+            feature_info = model.feature_info[-1]
+            feature_dim = feature_info['num_chs']
 
-        return model, feature_dim
+            return model, feature_dim
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -405,19 +447,11 @@ class HybridStudentModel(nn.Module):
         Returns:
             torch.Tensor: Logits [batch_size, num_classes]
         """
-        # Extract features from CNN backbone
-        features = self.backbone(x)  # [B, C, H, W]
+        # Extract features from CNN backbone (features_only=True returns a list)
+        features = self.backbone(x)[-1]  # Get the last (and only) feature map [B, C, H, W]
         
-        # Handle different backbone outputs
-        if features.dim() == 2:
-            # Already flattened (shouldn't happen with our setup)
-            B, C = features.shape
-            H = W = 1
-            features = features.view(B, C, 1, 1)
-        elif features.dim() == 4:
-            B, C, H, W = features.shape
-        else:
-            raise ValueError(f"Unexpected feature dimension: {features.shape}")
+        # Now reliably 4D
+        B, C, H, W = features.shape
         
         # Apply transformer attention (always enabled in hybrid models)
         if H * W > 1:
@@ -480,20 +514,16 @@ def create_student_model(
         >>> print(f"Parameters: {model.get_num_params():,}")
         >>> print(f"Size: {model.get_model_size_mb():.2f} MB")
     """
-    # Parse architecture string
-    parts = architecture.split('_')
-    
-    # Extract backbone and attention type
-    if 'mhsa' in architecture:
-        attention_type = 'mhsa'
-        backbone = architecture.replace('_mhsa', '')
-    elif 'performer' in architecture:
-        attention_type = 'performer'
-        backbone = architecture.replace('_performer', '')
-    else:
+    # Look up configuration from MODEL_CONFIGS
+    if architecture not in MODEL_CONFIGS:
         raise ValueError(
-            f"Architecture must end with '_mhsa' or '_performer'. Got: {architecture}"
+            f"Unknown architecture: {architecture}. "
+            f"Choose from: {', '.join(MODEL_CONFIGS.keys())}"
         )
+    
+    config = MODEL_CONFIGS[architecture]
+    backbone = config['backbone']  # Use timm-compatible name from config
+    attention_type = config['attention']
     
     model = HybridStudentModel(
         backbone=backbone,
@@ -524,17 +554,17 @@ MODEL_CONFIGS = {
 
     # MobileNetV3-Large variants
     'mobilenet_v3_large_mhsa': {
-        'backbone': 'mobilenet_v3_large',
+        'backbone': 'mobilenetv3_large_100',
         'attention': 'mhsa',
         'description': 'MobileNetV3-Large + Multi-Head Self-Attention'
     },
     'mobilenet_v3_large_performer': {
-        'backbone': 'mobilenet_v3_large',
+        'backbone': 'mobilenetv3_large_100',
         'attention': 'performer',
         'description': 'MobileNetV3-Large + Performer (efficient attention)'
     },
 
-    # ShuffleNetV2 x1.0 variants
+    # ShuffleNetV2 x1.0 variants (from torchvision)
     'shufflenet_v2_x1_0_mhsa': {
         'backbone': 'shufflenet_v2_x1_0',
         'attention': 'mhsa',
