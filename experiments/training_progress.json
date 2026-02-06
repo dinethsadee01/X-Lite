@@ -1,0 +1,11 @@
+{
+  "completed_models": [
+    "mobilenet_v3_large_mhsa",
+    "mobilenet_v3_large_performer",
+    "efficientnet_b0_performer",
+    "shufflenet_v2_x1_0_mhsa",
+    "shufflenet_v2_x1_0_performer",
+    "efficientnet_b0_mhsa"
+  ],
+  "last_updated": "2026-02-06T18:56:37.599351"
+}
