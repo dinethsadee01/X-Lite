@@ -207,7 +207,7 @@ class PerformerAttention(nn.Module):
         q_sum = q_prime.sum(dim=-1, keepdim=True) + 1e-6
         k_sum = k_prime.transpose(-2, -1).sum(dim=-1, keepdim=True)  # [B, H, M, 1]
         normalizer = q_prime @ k_sum  # [B, H, N, 1]
-        qkv_out = qkv_out / (normalizer + 1e-6)
+        qkv_out = qkv_out / torch.clamp(normalizer, min=1e-4)
         
         # Reshape and project
         x_attn = qkv_out.transpose(1, 2).reshape(B, N, C)
