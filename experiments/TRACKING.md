@@ -21,6 +21,22 @@ KD_001,2026-01-21,distillation,StudentNet+KD,EfficientNet-B0,mhsa,4.0,0.7,64,0.0
 
 ## Phase 1: Baseline Student Training (Day 2-3)
 
+### Recent Baseline Run (2026-02-06)
+
+- **Run**: Smart subset baseline (6 hybrid CNN-Transformer models)
+- **Dataset**: Smart subset (20,122 images; 1:1 No Finding vs Sick)
+- **Config**: 30 epochs, batch 32, AdamW (1e-4), ReduceLROnPlateau, WeightedBCEWithLogitsLoss, CLAHE, AMP
+- **Best Model**: EfficientNet-B0 + MHSA (best val AUC 0.7966)
+- **Notes**: Performer variants collapsed (two near-random AUC; ShuffleNetV2+Performer zeros after best epoch)
+- **Results**: See [experiments/baseline_results.csv](experiments/baseline_results.csv)
+
+### Performer Rerun (2026-02-07)
+
+- **Run**: Performer-only rerun with normalizer clamp (min=1e-4)
+- **Models**: efficientnet_b0_performer, mobilenet_v3_large_performer, shufflenet_v2_x1_0_performer
+- **Outcome**: Stability fixed; best val AUC 0.8045 (EfficientNet-B0 + Performer)
+- **Results**: See [experiments/baseline_results.csv](experiments/baseline_results.csv)
+
 ### Experiment BASELINE_001
 
 - **Model**: EfficientNet-B0 (no attention)

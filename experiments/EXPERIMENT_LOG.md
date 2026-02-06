@@ -3,7 +3,7 @@
 **Project**: Lightweight Chest X-Ray Classification with Knowledge Distillation  
 **Phase**: Baseline Training Complete → Phase 2 Preparation (Knowledge Distillation)  
 **Hardware**: NVIDIA RTX 4070 Ti SUPER, Windows 11  
-**Last Updated**: February 2, 2026
+**Last Updated**: February 7, 2026
 
 ---
 
@@ -20,6 +20,8 @@
 | [EXP-006](#exp-006-focal-loss-vs-bce) | Jan 26 | Focal Loss ablation | ✅ Complete | Collapsed to all negatives; F1≈0 for 13/14 classes | ❌ Reject |
 | [EXP-007b](#exp-007b-full-dataset-50-epoch-training) | Jan 28-30 | Full 100% dataset, 50 epochs | ✅ Complete | **Best: 0.8351 AUC** (ConvNext Tiny MHSA, epoch 28) | ✅ **SELECTED** |
 | [EXP-007c](#exp-007c-convergence-continuation-attempt) | Feb 2 | Continuation +5 epochs | ✅ Complete | No improvement (validation declined) | ✅ Confirmed plateau |
+| [EXP-008a](#exp-008a-smart-subset-baseline-6-hybrid-models) | Feb 6 | Smart subset baseline (6 models) | ✅ Complete | **Best: 0.7966 AUC** (EfficientNet-B0 + MHSA) | ✅ Select MHSA |
+| [EXP-008b](#exp-008b-performer-stability-rerun) | Feb 7 | Performer stability rerun | ✅ Complete | **Best: 0.8045 AUC** (EfficientNet-B0 + Performer) | ✅ Select Performer |
 
 ---
 
@@ -969,6 +971,109 @@ This is the best model to use for Phase 2 (Knowledge Distillation).
 
 ---
 
+### EXP-008a: Smart Subset Baseline (6 Hybrid Models)
+
+**Date**: February 6, 2026  
+**Objective**: Train 6 hybrid CNN-Transformer students on the smart subset after data and model fixes  
+**Status**: ✅ Complete
+
+#### Configuration
+```python
+Models: 6 hybrid CNN-Transformer architectures
+  1. efficientnet_b0_mhsa
+  2. efficientnet_b0_performer
+  3. mobilenet_v3_large_mhsa
+  4. mobilenet_v3_large_performer
+  5. shufflenet_v2_x1_0_mhsa
+  6. shufflenet_v2_x1_0_performer
+
+Dataset: Smart subset (20,122 images; 1:1 No Finding vs Sick)
+Epochs: 30 (early stopping patience=10)
+Batch size: 32
+Optimizer: AdamW (lr=1e-4, weight_decay=1e-5)
+Scheduler: ReduceLROnPlateau (patience=5, factor=0.5)
+Loss: WeightedBCEWithLogitsLoss
+Augmentation: Medium strength (HFlip, Rotation, Brightness/Contrast)
+Mixed precision: Enabled (AMP)
+CLAHE: Enabled
+```
+
+#### Results
+
+**All 6 Models Performance**:
+| Model | Backbone | Attention | Best Val AUC | Final Val AUC | Final Val F1 | Best Epoch | Training Time (min) |
+|-------|----------|-----------|--------------|---------------|--------------|------------|---------------------|
+| **efficientnet_b0_mhsa** | EfficientNet-B0 | MHSA | **0.7966** | 0.7964 | 0.1506 | 22 | 49.5 |
+| mobilenet_v3_large_mhsa | MobileNetV3-Large | MHSA | 0.7963 | 0.7958 | 0.1328 | 21 | 60.8 |
+| shufflenet_v2_x1_0_mhsa | ShuffleNetV2 x1.0 | MHSA | 0.7892 | 0.7857 | 0.1199 | 29 | 83.3 |
+| shufflenet_v2_x1_0_performer | ShuffleNetV2 x1.0 | Performer | 0.7737 | 0.0000 | 0.0000 | 15 | 38.9 |
+| mobilenet_v3_large_performer | MobileNetV3-Large | Performer | 0.5047 | 0.5026 | 0.0586 | 4 | 26.2 |
+| efficientnet_b0_performer | EfficientNet-B0 | Performer | 0.5027 | 0.5006 | 0.0855 | 12 | 32.2 |
+
+#### Key Findings
+- MHSA variants are consistently strong (0.789-0.797 AUC).
+- Performer variants collapse toward random performance (0.50 AUC).
+- ShuffleNetV2 + Performer shows metric collapse to zeros after best epoch (instability).
+
+#### Decision
+✅ **Select EfficientNet-B0 + MHSA** as the best baseline for KD.  
+⚠️ **Performer needs stability fixes** before further evaluation (normalizer clamp proposed).
+
+**Artifacts**:
+- Results CSV: [experiments/baseline_results.csv](experiments/baseline_results.csv)
+- Progress: [experiments/training_progress.json](experiments/training_progress.json)
+- Checkpoints: [ml/models/checkpoints/{model_name}/](ml/models/checkpoints/{model_name}/)
+
+---
+
+### EXP-008b: Performer Stability Rerun
+
+**Date**: February 7, 2026  
+**Objective**: Re-run Performer variants with stability clamp on attention normalizer  
+**Status**: ✅ Complete
+
+#### Configuration
+```python
+Change: qkv_out = qkv_out / torch.clamp(normalizer, min=1e-4)
+Models: 3 Performer variants only
+  1. efficientnet_b0_performer
+  2. mobilenet_v3_large_performer
+  3. shufflenet_v2_x1_0_performer
+
+Dataset: Smart subset (20,122 images; 1:1 No Finding vs Sick)
+Epochs: 50 (early stopping patience=10)
+Batch size: 32
+Optimizer: AdamW (lr=1e-4, weight_decay=1e-5)
+Scheduler: ReduceLROnPlateau (patience=5, factor=0.5)
+Loss: WeightedBCEWithLogitsLoss
+Augmentation: Medium strength (HFlip, Rotation, Brightness/Contrast)
+Mixed precision: Enabled (AMP)
+CLAHE: Enabled
+```
+
+#### Results
+
+**Performer Models Performance**:
+| Model | Backbone | Best Val AUC | Final Val AUC | Final Val F1 | Best Epoch | Training Time (min) |
+|-------|----------|--------------|---------------|--------------|------------|---------------------|
+| **efficientnet_b0_performer** | EfficientNet-B0 | **0.8045** | 0.8038 | 0.1572 | 19 | 44.9 |
+| mobilenet_v3_large_performer | MobileNetV3-Large | 0.7965 | 0.7922 | 0.1453 | 25 | 56.6 |
+| shufflenet_v2_x1_0_performer | ShuffleNetV2 x1.0 | 0.7926 | 0.7907 | 0.1375 | 39 | 84.7 |
+
+#### Key Findings
+- Performer variants are now stable and no longer collapse to random performance.
+- EfficientNet-B0 + Performer is the new best on the smart subset.
+
+#### Decision
+✅ **Select EfficientNet-B0 + Performer** as the baseline candidate for KD.  
+🧪 If clamp feels too aggressive, test min=1e-5 or min=1e-6.
+
+**Artifacts**:
+- Results CSV: [experiments/baseline_results.csv](experiments/baseline_results.csv)
+- Checkpoints: [ml/models/checkpoints/{model_name}/](ml/models/checkpoints/{model_name}/)
+
+---
+
 ## Phase 1 Summary & Transition to Phase 2
 
 ### Baseline Training Completed ✅
@@ -1294,10 +1399,14 @@ Checkpoint: ml/models/checkpoints/kd/convnext_tiny_mhsa/best_checkpoint.pth
 - \experiments/cross_validation_summary.csv\ - CV summary
 
 **Visualizations:**
-- \esults/kd_validation_vs_test.png\ - Validation vs Test comparison
-- \esults/test_per_disease_auc.png\ - Per-disease AUC breakdown
-- \esults/baseline_vs_kd_comparison.png\ - Baseline vs KD comparison
-- \esults/training_efficiency.png\ - Training efficiency chart
+- \
+esults/kd_validation_vs_test.png\ - Validation vs Test comparison
+- \
+esults/test_per_disease_auc.png\ - Per-disease AUC breakdown
+- \
+esults/baseline_vs_kd_comparison.png\ - Baseline vs KD comparison
+- \
+esults/training_efficiency.png\ - Training efficiency chart
 
 ---
 
