@@ -60,52 +60,6 @@ from scripts.training_utils import (
     save_training_progress
 )
 
-
-# ============================================================================
-# COMMENTED OUT: 20% Subset Creation (Now using full dataset)
-# ============================================================================
-# def create_subset_loaders(
-#     full_train_loader,
-#     full_val_loader,
-#     subset_fraction: float = 0.2,
-#     seed: int = 42
-# ):
-#     """
-#     Create subset of training data for faster baseline experiments
-#     
-#     Args:
-#         full_train_loader: Full training data loader
-#         full_val_loader: Full validation data loader
-#         subset_fraction: Fraction of training data to use
-#         seed: Random seed for reproducibility
-#     
-#     Returns:
-#         tuple: (subset_train_loader, val_loader)
-#     """
-#     # Get dataset from loader
-#     train_dataset = full_train_loader.dataset
-#     
-#     # Create stratified subset
-#     np.random.seed(seed)
-#     subset_size = int(len(train_dataset) * subset_fraction)
-#     indices = np.random.choice(len(train_dataset), subset_size, replace=False)
-#     
-#     subset_dataset = Subset(train_dataset, indices)
-#     
-#     # Create new loader with subset
-#     subset_loader = torch.utils.data.DataLoader(
-#         subset_dataset,
-#         batch_size=full_train_loader.batch_size,
-#         shuffle=True,
-#         num_workers=full_train_loader.num_workers,
-#         pin_memory=full_train_loader.pin_memory,
-#         drop_last=True
-#     )
-#     
-#     return subset_loader, full_val_loader
-# ============================================================================
-
-
 def train_single_model(
     model_name: str,
     train_loader,
@@ -257,7 +211,7 @@ def main():
     print("=" * 70)
     print(f"Training 6 hybrid CNN-Transformer models")
     print("Dataset: Smart subset from training data")
-    print(f"Epochs: 50 (early stopping patience=10)")
+    print(f"Epochs: 50 (early stopping patience=5)")
     print(f"Loss: Weighted BCE with class weights")
     print(f"Metrics: AUC, F1, PR-AUC, Precision, Recall")
     print(f"Resume: Automatically skips completed models (training_progress.json)")
