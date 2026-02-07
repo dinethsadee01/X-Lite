@@ -1,9 +1,10 @@
 """
-Full Dataset Training Script (15-Class System)
-===============================================
+Full Dataset Training Script (15-Class System - Fixed)
+=======================================================
 Trains EfficientNet-B0 Performer on the FULL training set with 15 classes.
 
 IMPORTANT: Now includes "No Finding" as explicit 15th class to fix overprediction issue.
+FIXED: Reduced learning rate, increased gradient clipping, switched to Focal Loss for stability.
 
 Based on train_baseline.py but adapted for single model, full dataset training.
 
@@ -13,8 +14,9 @@ Configuration:
 - Dataset: Full training set (precomputed CLAHE cached images)
 - Epochs: 50 (early stopping patience=8)
 - Batch size: 32
-- Optimizer: AdamW (lr=1e-4, weight_decay=1e-5)
-- Loss: WeightedBCEWithLogitsLoss (15-class weighted)
+- Optimizer: AdamW (lr=5e-5, weight_decay=1e-5)  [REDUCED from 1e-4]
+- Loss: Focal Loss (α=0.25, γ=2.0)  [SWITCHED from WeightedBCE]
+- Gradient Clipping: 5.0  [INCREASED from 1.0]
 - Augmentation: Medium strength on CLAHE-preprocessed images
 
 Note: CLAHE images must be precomputed first:
@@ -47,7 +49,7 @@ from ml.data.loader import ChestXrayDataset
 from ml.data.augmentation import get_augmentation_pipeline
 from ml.data.preprocessing import get_medical_transforms
 from ml.training.trainer import create_trainer
-from ml.training.losses import WeightedBCEWithLogitsLoss, calculate_pos_weights
+from ml.training.losses import WeightedBCEWithLogitsLoss, FocalLoss, calculate_pos_weights
 from config.disease_labels import DISEASE_LABELS
 from scripts.training_utils import evaluate_final_metrics
 
@@ -58,8 +60,10 @@ from scripts.training_utils import evaluate_final_metrics
 MODEL_NAME = 'efficientnet_b0_performer'
 NUM_EPOCHS = 50
 BATCH_SIZE = 32
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 5e-5  # Reduced from 1e-4 for 15-class stability
 EARLY_STOPPING_PATIENCE = 8
+GRADIENT_CLIP_VAL = 5.0  # Increased from 1.0 for more aggressive gradient clipping
+USE_FOCAL_LOSS = True  # Use Focal Loss instead of BCE for better stability
 CHECKPOINT_SUFFIX = '_full_dataset_15class'  # 15-class system (14 diseases + No_Finding)
 # ============================================================
 
@@ -178,12 +182,21 @@ def main():
     for label, count in counts_with_labels[-5:]:
         print(f"    {label:<20} {count:,}")
 
-    criterion = WeightedBCEWithLogitsLoss(pos_weights=pos_weights)
+    # Use Focal Loss for better stability with 15 classes
+    if USE_FOCAL_LOSS:
+        from ml.training.losses import FocalLoss
+        criterion = FocalLoss(alpha=0.25, gamma=2.0, reduction='mean')
+        print("Loss: Focal Loss (α=0.25, γ=2.0)")
+    else:
+        criterion = WeightedBCEWithLogitsLoss(pos_weights=pos_weights)
+        print("Loss: Weighted BCE with class weights")
 
     # Checkpoint directory (separate from baseline checkpoints)
     checkpoint_dir = project_root / "ml" / "models" / "checkpoints" / f"{MODEL_NAME}{CHECKPOINT_SUFFIX}"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     print(f"Checkpoints: {checkpoint_dir}")
+    print(f"Learning Rate: {LEARNING_RATE}")
+    print(f"Gradient Clipping: {GRADIENT_CLIP_VAL}")
 
     # Create trainer (same as train_baseline.py)
     trainer = create_trainer(
@@ -195,7 +208,9 @@ def main():
         weight_decay=1e-5,
         checkpoint_dir=checkpoint_dir,
         device=device,
-        use_amp=True
+        use_amp=True,
+        gradient_clip_val=GRADIENT_CLIP_VAL,  # Pass increased clipping value
+        num_classes=NUM_CLASSES  # Pass correct number of classes (15)
     )
 
     # Scheduler
