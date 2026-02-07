@@ -36,26 +36,23 @@ def precompute_clahe_cache(
     clahe_processor: CLAHEPreprocessor
 ):
     """
-    Pre-compute CLAHE for all training and validation images
+    Pre-compute CLAHE for all training, validation, and test images
     
     Args:
         data_dir: Directory containing original images
-        splits_dir: Directory containing train.csv, val.csv
+        splits_dir: Directory containing train.csv, val.csv, test.csv
         output_dir: Directory to save pre-computed CLAHE images
         clahe_processor: CLAHE processor instance
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Load splits
-    train_df = pd.read_csv(splits_dir / "train.csv")
-    val_df = pd.read_csv(splits_dir / "val.csv")
-    
-    all_df = pd.concat([train_df, val_df], ignore_index=True)
+    # Load test split only
+    test_df = pd.read_csv(splits_dir / "test.csv")
     
     print(f"\n{'='*70}")
-    print(f"CLAHE PRE-COMPUTATION")
+    print(f"CLAHE PRE-COMPUTATION - TEST SET ONLY")
     print(f"{'='*70}")
-    print(f"Images to process: {len(all_df):,}")
+    print(f"Test images to process: {len(test_df):,}")
     print(f"Output directory: {output_dir}")
     print(f"\nProcessing images...\n")
     
@@ -63,9 +60,9 @@ def precompute_clahe_cache(
     success_count = 0
     
     # Get Image Index column name
-    img_col = 'Image Index' if 'Image Index' in train_df.columns else 'image_id'
+    img_col = 'Image Index' if 'Image Index' in test_df.columns else 'image_id'
     
-    for idx, row in tqdm(all_df.iterrows(), total=len(all_df), desc="CLAHE"):
+    for idx, row in tqdm(test_df.iterrows(), total=len(test_df), desc="CLAHE Test"):
         try:
             img_path = data_dir / row[img_col]
             
