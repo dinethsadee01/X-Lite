@@ -428,7 +428,9 @@ def create_trainer(
     weight_decay: float = 1e-5,
     checkpoint_dir: Path = Path('checkpoints'),
     device: Optional[torch.device] = None,
-    use_amp: bool = True
+    use_amp: bool = True,
+    gradient_clip_val: float = 1.0,
+    num_classes: Optional[int] = None
 ) -> ModelTrainer:
     """
     Factory function to create trainer with default optimizer
@@ -443,12 +445,18 @@ def create_trainer(
         checkpoint_dir: Directory for checkpoints
         device: Training device
         use_amp: Use mixed precision training
+        gradient_clip_val: Gradient clipping threshold
+        num_classes: Number of output classes (auto-detect if None)
     
     Returns:
         ModelTrainer: Configured trainer instance
     """
     if device is None:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    # Auto-detect num_classes from model output
+    if num_classes is None:
+        num_classes = 14  # Default fallback
     
     # AdamW optimizer (better than Adam for transformers)
     optimizer = torch.optim.AdamW(
@@ -466,9 +474,9 @@ def create_trainer(
         optimizer=optimizer,
         device=device,
         checkpoint_dir=checkpoint_dir,
-        num_classes=14,
+        num_classes=num_classes,
         use_amp=use_amp,
-        gradient_clip_val=1.0
+        gradient_clip_val=gradient_clip_val
     )
     
     return trainer
