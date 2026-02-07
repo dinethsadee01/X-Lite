@@ -2,6 +2,7 @@
 Prediction Verification Script
 ===============================
 Spot-check model predictions on random test samples to verify correctness.
+Now supports both default (0.5) and optimal per-disease thresholds.
 
 Usage:
     python scripts/verify_predictions.py
@@ -17,6 +18,7 @@ sys.path.insert(0, str(project_root))
 import torch
 import pandas as pd
 import numpy as np
+import json
 from ml.models.student_model import create_student_model
 from ml.data.loader import ChestXrayDataset
 from ml.data.preprocessing import get_medical_transforms
@@ -26,8 +28,10 @@ from config.disease_labels import DISEASE_LABELS
 # Configuration
 MODEL_NAME = 'efficientnet_b0_performer'
 CHECKPOINT_PATH = 'ml/models/checkpoints/efficientnet_b0_performer_full_dataset_15class/best_checkpoint.pth'
+OPTIMAL_THRESHOLDS_PATH = 'scripts/optimal_thresholds.json'
 NUM_SAMPLES = 10
-THRESHOLD = 0.5
+DEFAULT_THRESHOLD = 0.5
+USE_OPTIMAL_THRESHOLDS = True  # Set to False to use fixed 0.5 threshold
 
 
 def main():
@@ -37,7 +41,20 @@ def main():
     
     # Setup
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Device: {device}\n")
+    print(f"Device: {device}")
+    threshold_mode = "Optimal Per-Disease" if USE_OPTIMAL_THRESHOLDS else "Fixed 0.5"
+    print(f"Threshold Mode: {threshold_mode}\n")
+    
+    # Load optimal thresholds if requested
+    optimal_thresholds = None
+    if USE_OPTIMAL_THRESHOLDS:
+        thresholds_path = project_root / OPTIMAL_THRESHOLDS_PATH
+        with open(thresholds_path, 'r') as f:
+            optimal_thresholds = json.load(f)
+        print("Loaded optimal thresholds:")
+        for disease, threshold in sorted(optimal_thresholds.items(), key=lambda x: x[1]):
+            print(f"  {disease:<25} {threshold:.2f}")
+        print()
     
     # Paths
     clahe_cache_dir = project_root / "data" / "clahe_cache"
@@ -95,10 +112,16 @@ def main():
                 if target[i] == 1:
                     actual_diseases.append(label)
             
-            # Predicted (threshold at 0.5)
+            # Predicted diseases (using appropriate threshold)
             predicted_diseases = []
             for i, label in enumerate(DISEASE_LABELS):
-                if probs[i] >= THRESHOLD:
+                # Get threshold for this disease
+                if USE_OPTIMAL_THRESHOLDS and optimal_thresholds:
+                    threshold = optimal_thresholds.get(label, DEFAULT_THRESHOLD)
+                else:
+                    threshold = DEFAULT_THRESHOLD
+                
+                if probs[i] >= threshold:
                     predicted_diseases.append(f"{label} ({probs[i]:.3f})")
             
             # Display
@@ -127,19 +150,35 @@ def main():
             print(f"\nDisease Probabilities (top 5):")
             for disease, prob in prob_list[:5]:
                 marker = "✓" if target[DISEASE_LABELS.index(disease)] == 1 else " "
-                print(f"  [{marker}] {disease:<25} {prob:.4f}")
+                
+                # Get threshold for this disease
+                if USE_OPTIMAL_THRESHOLDS and optimal_thresholds:
+                    threshold = optimal_thresholds.get(disease, DEFAULT_THRESHOLD)
+                else:
+                    threshold = DEFAULT_THRESHOLD
+                
+                pred_marker = "!" if prob >= threshold else ""
+                print(f"  [{marker}] {disease:<25} {prob:.4f} {pred_marker}")
             
             # Show No_Finding probability separately
             no_finding_prob = probs[14]
             no_finding_actual = target[14] == 1
             marker = "✓" if no_finding_actual else " "
+            
+            if USE_OPTIMAL_THRESHOLDS and optimal_thresholds:
+                no_finding_threshold = optimal_thresholds.get('No_Finding', DEFAULT_THRESHOLD)
+            else:
+                no_finding_threshold = DEFAULT_THRESHOLD
+            
+            pred_marker = "!" if no_finding_prob >= no_finding_threshold else ""
             print(f"\nNo Finding:")
-            print(f"  [{marker}] No_Finding               {no_finding_prob:.4f}")
+            print(f"  [{marker}] No_Finding               {no_finding_prob:.4f} {pred_marker}")
+            print(f"  (Threshold: {no_finding_threshold:.2f})")
             
             print("=" * 80)
     
     print(f"\n✓ Verification complete!")
-    print(f"Legend: [✓] = Actually present in ground truth\n")
+    print(f"Legend: [✓] = Actually present in ground truth, [!] = Predicted positive at threshold\n")
 
 
 if __name__ == '__main__':
