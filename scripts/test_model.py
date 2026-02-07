@@ -42,7 +42,6 @@ from ml.data.loader import ChestXrayDataset
 from ml.data.preprocessing import get_medical_transforms
 from scripts.training_utils import evaluate_final_metrics
 
-
 # ============================================================
 # CONFIGURATION - Edit these values to test different models
 # ============================================================
@@ -51,7 +50,7 @@ from scripts.training_utils import evaluate_final_metrics
 MODEL_NAME = 'efficientnet_b0_performer'
 
 # Path to checkpoint file (best_checkpoint.pth or last_checkpoint.pth)
-CHECKPOINT_PATH = 'ml/models/checkpoints/efficientnet_b0_performer_full_dataset/best_checkpoint.pth'
+CHECKPOINT_PATH = 'ml/models/checkpoints/efficientnet_b0_performer_full_dataset_15class/best_checkpoint.pth'
 
 # Stage identifier (for results file naming)
 STAGE = 'baseline'  # Options: 'baseline', 'after_kd', 'final_tuned'
@@ -60,7 +59,6 @@ STAGE = 'baseline'  # Options: 'baseline', 'after_kd', 'final_tuned'
 BATCH_SIZE = 32
 
 # ============================================================
-
 
 def load_model_checkpoint(checkpoint_path: Path, model_name: str, device: torch.device):
     """
@@ -103,7 +101,6 @@ def load_model_checkpoint(checkpoint_path: Path, model_name: str, device: torch.
     model.eval()
     
     return model
-
 
 def main():
     """Evaluate model on test set"""
