@@ -1,6 +1,6 @@
 """
 Dataset Loader for ChestX-ray14
-Handles multi-label chest X-ray images with 14 disease classes
+Handles multi-label chest X-ray images with 15 classes (14 diseases + No Finding)
 """
 
 import os
@@ -51,7 +51,7 @@ class ChestXrayDataset(Dataset):
         """
         Returns:
             image (torch.Tensor): Preprocessed image tensor
-            label (torch.Tensor): Multi-label binary vector (14 classes)
+            label (torch.Tensor): Multi-label binary vector (15 classes: 14 diseases + No_Finding)
             image_id (str): Image filename for reference
         """
         row = self.labels_df.iloc[idx]
@@ -87,17 +87,21 @@ class ChestXrayDataset(Dataset):
         Convert label string to multi-hot encoded vector
         
         Args:
-            label_str (str): Pipe-separated labels (e.g., "Atelectasis|Effusion")
+            label_str (str): Pipe-separated labels (e.g., "Atelectasis|Effusion" or "No Finding")
         
         Returns:
-            torch.Tensor: Binary vector of shape (NUM_CLASSES,)
+            torch.Tensor: Binary vector of shape (NUM_CLASSES,) = 15 classes
+                         Classes 0-13: 14 diseases
+                         Class 14: No_Finding
         """
         label_vector = torch.zeros(NUM_CLASSES, dtype=torch.float32)
         
+        # Handle "No Finding" as explicit 15th class
         if pd.isna(label_str) or label_str == 'No Finding':
-            return label_vector  # All zeros for normal case
+            label_vector[14] = 1.0  # Set No_Finding class (index 14) to 1
+            return label_vector
         
-        # Split labels and encode
+        # Split labels and encode diseases (indices 0-13)
         labels = label_str.split('|')
         for label in labels:
             label = label.strip()

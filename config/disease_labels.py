@@ -1,9 +1,9 @@
 """
 ChestX-ray14 Disease Labels and Metadata
-14 thoracic disease classes from NIH Clinical Center dataset
+15 classes: 14 thoracic diseases + "No Finding"
 """
 
-# 14 disease labels (official ChestX-ray14 classes)
+# 15 disease labels (14 official ChestX-ray14 classes + No Finding)
 DISEASE_LABELS = [
     'Atelectasis',
     'Cardiomegaly',
@@ -18,7 +18,8 @@ DISEASE_LABELS = [
     'Emphysema',
     'Fibrosis',
     'Pleural_Thickening',
-    'Hernia'
+    'Hernia',
+    'No_Finding'  # Added as 15th class to fix overprediction issue
 ]
 
 NUM_CLASSES = len(DISEASE_LABELS)
@@ -44,7 +45,8 @@ DISEASE_DESCRIPTIONS = {
     'Emphysema': 'Damage to air sacs causing breathing difficulty',
     'Fibrosis': 'Thickening and scarring of lung tissue',
     'Pleural_Thickening': 'Thickening of pleura (lung lining)',
-    'Hernia': 'Protrusion of organ through cavity wall'
+    'Hernia': 'Protrusion of organ through cavity wall',
+    'No_Finding': 'No abnormalities detected in the chest X-ray'
 }
 
 # Risk levels for UI color coding
