@@ -22,8 +22,8 @@ results_dir.mkdir(exist_ok=True)
 models = [
     "efficientnet_b0_mhsa",
     "efficientnet_b0_performer",
-    "convnext_tiny_mhsa",
-    "convnext_tiny_performer",
+    "shufflenet_v2_x1_0_mhsa",
+    "shufflenet_v2_x1_0_performer",
     "mobilenet_v3_large_mhsa",
     "mobilenet_v3_large_performer"
 ]
