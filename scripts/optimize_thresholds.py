@@ -7,15 +7,7 @@ Instead of using fixed 0.5 threshold for all classes, each disease gets its own
 optimal threshold based on validation set performance.
 
 Usage:
-    python scripts/✅ TRAINING COMPLETE: efficientnet_b0_performer
-======================================================================
-   Best Val AUC: 0.8162 (epoch 12)
-   Final Val AUC: 0.7998
-   Final Val F1: 0.0990
-   Final Val PR-AUC: 0.2658
-   Final Val Precision: 0.4482
-   Final Val Recall: 0.0680
-   Training time: 89.5 minutes
+    python scripts/optimize_thresholds.py
 
 Output:
     - Saves optimal thresholds to: scripts/optimal_thresholds.json
