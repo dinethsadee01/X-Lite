@@ -130,9 +130,9 @@ TESTED & VERIFIED
   - Outputs: 14 pathological classes (no No_Finding)
   - Input: RGB images (3-channel, 224×224)
 
-✓ Student model: MobileNetV3 Large + Performer Attention
-  - Parameters: 7,129,727 (~1.1× teacher size - similar capacity)
-  - Size: ~27 MB
+✓ Student model: EfficientNet-B0 + Performer Attention (your best baseline)
+  - Parameters: ~5,300,000 (0.7× teacher size - good compression)
+  - Size: ~20 MB
   - Outputs: 15 classes (14 pathologies + No_Finding)
 
 ✓ Disease order mapping:

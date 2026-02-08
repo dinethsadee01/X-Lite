@@ -40,10 +40,15 @@ class KDConfig:
     
     # ============= Student Model Settings =============
     STUDENT_NUM_CLASSES = 15  # 14 pathologies + explicit No_Finding
+    
+    # PRIMARY STUDENT: Your best baseline model for KD comparison
+    PRIMARY_STUDENT = 'efficientnet_b0_performer'  # Best from Phase 1
+    
+    # ALTERNATIVE STUDENTS: For ablation studies
     STUDENT_BACKBONES = [
-        'mobilenetv3_small',      # ~2.5M params, good compression
-        'mobilenetv3_large',      # ~5.4M params, better quality
-        'efficientnet_b0',        # ~5.3M params, your current baseline
+        'efficientnet_b0_performer',  # PRIMARY - Your best baseline (~5.3M params)
+        'mobilenetv3_large_performer', # Alternative 1 (~5.4M params, faster)
+        'shufflenet_v2_x1_0_performer', # Alternative 2 (~2.3M params, smallest)
     ]
     
     # ============= Knowledge Distillation Hyperparameters =============

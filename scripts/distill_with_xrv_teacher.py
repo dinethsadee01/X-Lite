@@ -200,7 +200,7 @@ def test_distillation_pipeline():
     print("=" * 100)
     
     student = create_student_model(
-        'mobilenet_v3_large_performer',  # Use available student architecture
+        'efficientnet_b0_performer',  # Your best baseline model
         num_classes=15,  # Student has 15 (includes No_Finding)
         pretrained=True
     )
@@ -208,7 +208,7 @@ def test_distillation_pipeline():
     student.train()
     
     print(f"✓ Student created")
-    print(f"  Type: MobileNetV3 Large + Performer Attention")
+    print(f"  Type: EfficientNet-B0 + Performer Attention")
     print(f"  Output classes: 15 (14 pathologies + No_Finding)")
     print(f"  Parameters: {sum(p.numel() for p in student.parameters()):,}")
     print(f"  Compression ratio: {teacher.get_num_params() / sum(p.numel() for p in student.parameters()):.1f}x")

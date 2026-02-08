@@ -176,12 +176,12 @@ predictions = {
 
 ## Next Steps: Phase 2 (Knowledge Distillation)
 
-**Goal:** Train smaller student model that matches or exceeds baseline performance
+**Goal:** Compare Knowledge Distillation vs Hard Training for the same architecture
 
-- **Teacher:** EfficientNet-B0 Performer (current baseline)
-- **Student:** Smaller architecture TBD (MobileNet, ShuffleNet, or quantized EfficientNet)
-- **Approach:** Knowledge Distillation with temperature scaling
-- **Target Metric:** Match 0.8182 AUC with <50% of parameters
+- **Teacher:** TorchXRayVision DenseNet121 (NIH Chest X-ray14 pretrained, 14 classes)
+- **Student:** EfficientNet-B0 Performer (same as baseline - for direct comparison)
+- **Approach:** Hybrid Knowledge Distillation (soft targets for 14 classes + hard target for No_Finding)
+- **Target Metric:** Match or exceed baseline 0.8182 AUC with knowledge transfer
 
 ---
 
