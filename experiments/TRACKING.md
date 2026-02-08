@@ -37,6 +37,22 @@ KD_001,2026-01-21,distillation,StudentNet+KD,EfficientNet-B0,mhsa,4.0,0.7,64,0.0
 - **Outcome**: Stability fixed; best val AUC 0.8045 (EfficientNet-B0 + Performer)
 - **Results**: See [experiments/baseline_results.csv](experiments/baseline_results.csv)
 
+### Full Dataset Baseline (15-class + Optimized Thresholds) (2026-02-08)
+
+- **Run**: EfficientNet-B0 + Performer on full dataset with explicit No_Finding class
+- **Dataset**: Full training/validation/test split (78,484 / 16,818 / 16,818)
+- **Config**: AdamW (lr=5e-5), Focal Loss (alpha=0.25, gamma=2.0), batch 32, early stopping
+- **Output**: Per-disease thresholds optimized on validation set (mean threshold 0.237)
+- **Test AUC (macro)**: 0.8182
+- **Test F1 (macro)**: 0.3330 (with optimal thresholds)
+- **Test Precision (macro)**: 0.3015
+- **Test Recall (macro)**: 0.4020
+- **Artifacts**:
+  - Model: ml/models/checkpoints/efficientnet_b0_performer_full_dataset_15class/best_checkpoint.pth
+  - Thresholds: scripts/optimal_thresholds.json
+  - Results: experiments/test_results_15class_optimized.json
+  - Visuals: results/phase1_*.png
+
 ### Experiment BASELINE_001
 
 - **Model**: EfficientNet-B0 (no attention)

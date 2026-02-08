@@ -3,7 +3,7 @@
 **Project**: Lightweight Chest X-Ray Classification with Knowledge Distillation  
 **Phase**: Baseline Training Complete → Phase 2 Preparation (Knowledge Distillation)  
 **Hardware**: NVIDIA RTX 4070 Ti SUPER, Windows 11  
-**Last Updated**: February 7, 2026
+**Last Updated**: February 8, 2026
 
 ---
 
@@ -22,6 +22,7 @@
 | [EXP-007c](#exp-007c-convergence-continuation-attempt) | Feb 2 | Continuation +5 epochs | ✅ Complete | No improvement (validation declined) | ✅ Confirmed plateau |
 | [EXP-008a](#exp-008a-smart-subset-baseline-6-hybrid-models) | Feb 6 | Smart subset baseline (6 models) | ✅ Complete | **Best: 0.7966 AUC** (EfficientNet-B0 + MHSA) | ✅ Select MHSA |
 | [EXP-008b](#exp-008b-performer-stability-rerun) | Feb 7 | Performer stability rerun | ✅ Complete | **Best: 0.8045 AUC** (EfficientNet-B0 + Performer) | ✅ Select Performer |
+| [EXP-011](#exp-011-full-dataset-15-class-baseline-with-threshold-optimization) | Feb 8 | Full dataset 15-class baseline + thresholds | ✅ Complete | **Test AUC 0.8182** (macro), **F1 0.3330** | ✅ Baseline locked |
 
 ---
 
@@ -1073,6 +1074,51 @@ CLAHE: Enabled
 - Checkpoints: [ml/models/checkpoints/{model_name}/](ml/models/checkpoints/{model_name}/)
 
 ---
+
+### EXP-011: Full Dataset 15-Class Baseline with Threshold Optimization
+
+**Date**: February 8, 2026  
+**Objective**: Train EfficientNet-B0 + Performer with explicit No_Finding class and optimize per-disease thresholds  
+**Status**: ✅ Complete
+
+#### Configuration
+```python
+Model: efficientnet_b0_performer
+Classes: 15 (14 diseases + No_Finding)
+Dataset: Full training set (78,484) + val (16,818) + test (16,818)
+Optimizer: AdamW (lr=5e-5, weight_decay=1e-5)
+Loss: Focal Loss (alpha=0.25, gamma=2.0)
+Batch size: 32
+Early stopping: patience=8
+Gradient clipping: 5.0
+Preprocessing: CLAHE cache, ImageNet normalization
+
+Threshold Optimization:
+  - Validation set F1 optimization
+  - Per-disease thresholds (mean 0.237, range 0.10-0.35)
+```
+
+#### Test Results (with optimal thresholds)
+
+| Metric | Value |
+|--------|-------|
+| AUC (macro) | 0.8182 |
+| F1 (macro) | 0.3330 |
+| Precision (macro) | 0.3015 |
+| Recall (macro) | 0.4020 |
+
+#### Key Findings
+
+- Overprediction resolved by per-disease thresholds (no fixed 0.5 threshold).
+- No_Finding class learned with strong recall (0.8506) and F1 (0.7556).
+- AUC remained stable while macro F1 improved by 0.287 over default 0.5.
+
+#### Artifacts
+
+- Checkpoint: `ml/models/checkpoints/efficientnet_b0_performer_full_dataset_15class/best_checkpoint.pth`
+- Thresholds: `scripts/optimal_thresholds.json`
+- Test results: `experiments/test_results_15class_optimized.json`
+- Visuals: `results/phase1_auc_per_disease.png`, `results/phase1_f1_default_vs_optimal.png`, `results/phase1_thresholds.png`, `results/phase1_macro_metrics.png`
 
 ## Phase 1 Summary & Transition to Phase 2
 
