@@ -4,6 +4,7 @@ Handles multi-label chest X-ray images with 15 classes (14 diseases + No Finding
 """
 
 import os
+import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -12,6 +13,11 @@ import torch
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from typing import Tuple, Optional, Dict, List
 
+# Add project root to path to avoid conflicts with installed packages
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+# Now import from local config
 from config import DISEASE_LABELS, NUM_CLASSES
 
 
