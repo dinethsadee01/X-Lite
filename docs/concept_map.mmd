@@ -1,0 +1,158 @@
+graph TB
+    %% Main System
+    XLite[X-Lite System]
+    XLite --> WebApp[Web Application]
+    XLite --> MLPipeline[ML Pipeline]
+    XLite --> Dataset[ChestX-ray14 Dataset]
+    
+    %% Web Application
+    WebApp --> Frontend[React Frontend]
+    WebApp --> Backend[FastAPI Backend]
+    WebApp --> Services[Service Layer]
+    
+    Frontend --> Upload[Image Upload]
+    Frontend --> Results[Results Display]
+    Frontend --> Report[PDF Report]
+    
+    Backend --> API[REST API]
+    API --> UploadEP[/api/upload]
+    API --> PredictEP[/api/predict]
+    API --> ReportEP[/api/report]
+    API --> HealthEP[/api/health]
+    
+    Services --> ImageSvc[Image Service]
+    Services --> PredSvc[Prediction Service]
+    Services --> ReportSvc[Report Service]
+    
+    %% ML Pipeline
+    MLPipeline --> Training[Training Pipeline]
+    MLPipeline --> Inference[Inference Pipeline]
+    MLPipeline --> Models[Model Architecture]
+    
+    Training --> KD[Knowledge Distillation]
+    KD --> Teacher[Teacher Model]
+    KD --> Student[Student Model]
+    
+    Teacher --> DenseNet[DenseNet121]
+    DenseNet --> CheXNet[CheXNet Weights]
+    
+    Student --> Backbone[CNN Backbone]
+    Student --> Attention[Attention Module]
+    Student --> ClassHead[Classification Head]
+    
+    Backbone --> EfficientNet[EfficientNet-B0]
+    Backbone --> ConvNeXt[ConvNeXt-Tiny]
+    Backbone --> MobileNet[MobileNetV3]
+    
+    Attention --> MHSA[Multi-Head Self-Attention]
+    Attention --> Performer[Performer]
+    Attention --> LinearAttn[Linear Attention]
+    
+    ClassHead --> Output[14 Disease Classes]
+    
+    Training --> Loss[Loss Functions]
+    Loss --> KDLoss[KD Loss]
+    Loss --> BCELoss[BCE Loss]
+    Loss --> PosWeight[Positive Weights]
+    
+    Training --> Optimizer[AdamW Optimizer]
+    Training --> Scheduler[ReduceLROnPlateau]
+    Training --> EarlyStopping[Early Stopping]
+    
+    %% Inference Pipeline
+    Inference --> Preprocessing[Preprocessing]
+    Inference --> Prediction[Prediction]
+    Inference --> PostProcessing[Post-Processing]
+    Inference --> Explainability[Explainability]
+    
+    Preprocessing --> CLAHE[CLAHE Enhancement]
+    Preprocessing --> Resize[Resize 224x224]
+    Preprocessing --> Normalize[Normalization]
+    
+    Prediction --> Forward[Forward Pass]
+    Prediction --> Sigmoid[Sigmoid Activation]
+    
+    PostProcessing --> Threshold[Confidence Threshold]
+    PostProcessing --> RiskLevel[Risk Level Assignment]
+    
+    RiskLevel --> HighRisk[High Risk >70%]
+    RiskLevel --> MediumRisk[Medium Risk 50-70%]
+    RiskLevel --> LowRisk[Low Risk <50%]
+    
+    Explainability --> GradCAM[Grad-CAM]
+    GradCAM --> Heatmap[Activation Heatmap]
+    GradCAM --> Visualization[Visual Overlay]
+    
+    %% Dataset
+    Dataset --> Images[112K X-Ray Images]
+    Dataset --> Labels[Multi-Label Annotations]
+    Dataset --> Splits[Data Splits]
+    
+    Splits --> TrainSet[Train 70%]
+    Splits --> ValSet[Validation 15%]
+    Splits --> TestSet[Test 15%]
+    
+    Labels --> Diseases[14 Diseases]
+    
+    Diseases --> Atelectasis
+    Diseases --> Cardiomegaly
+    Diseases --> Effusion
+    Diseases --> Infiltration
+    Diseases --> Mass
+    Diseases --> Nodule
+    Diseases --> Pneumonia
+    Diseases --> Pneumothorax
+    Diseases --> Consolidation
+    Diseases --> Edema
+    Diseases --> Emphysema
+    Diseases --> Fibrosis
+    Diseases --> PleuralThick[Pleural Thickening]
+    Diseases --> Hernia
+    
+    %% Clinical Application
+    XLite --> Clinical[Clinical Application]
+    Clinical --> Diagnosis[Computer-Aided Diagnosis]
+    Clinical --> ResourceLimited[Resource-Constrained Settings]
+    Clinical --> Screening[Mass Screening]
+    
+    Diagnosis --> MultiLabel[Multi-Label Classification]
+    Diagnosis --> ConfidenceScore[Confidence Scores]
+    Diagnosis --> VisualEvidence[Visual Evidence]
+    
+    ResourceLimited --> LowCompute[Low Computational Requirements]
+    ResourceLimited --> CPUInference[CPU-Optimized Inference]
+    ResourceLimited --> FastResponse[Fast Response Time]
+    
+    %% Data Augmentation
+    Training --> Augmentation[Data Augmentation]
+    Augmentation --> Rotation[Random Rotation]
+    Augmentation --> Translation[Random Translation]
+    Augmentation --> Brightness[Brightness Adjustment]
+    Augmentation --> Contrast[Contrast Adjustment]
+    
+    %% Metrics
+    Training --> Metrics[Evaluation Metrics]
+    Metrics --> AUC[AUC-ROC]
+    Metrics --> F1Score[F1 Score]
+    Metrics --> PRAUC[PR-AUC]
+    Metrics --> Precision
+    Metrics --> Recall
+    
+    %% Model Characteristics
+    Student --> ModelChar[Model Characteristics]
+    ModelChar --> Parameters[Reduced Parameters]
+    ModelChar --> FLOPs[Lower FLOPs]
+    ModelChar --> Accuracy[Maintained Accuracy]
+    
+    %% Styling
+    classDef systemClass fill:#1976d2,stroke:#0d47a1,color:#fff,stroke-width:2px
+    classDef mlClass fill:#388e3c,stroke:#1b5e20,color:#fff,stroke-width:2px
+    classDef dataClass fill:#f57c00,stroke:#e65100,color:#fff,stroke-width:2px
+    classDef clinicalClass fill:#7b1fa2,stroke:#4a148c,color:#fff,stroke-width:2px
+    classDef diseaseClass fill:#c62828,stroke:#b71c1c,color:#fff,stroke-width:1px
+    
+    class XLite,WebApp,Frontend,Backend systemClass
+    class MLPipeline,Training,Inference,KD,Teacher,Student mlClass
+    class Dataset,Images,Labels,Splits dataClass
+    class Clinical,Diagnosis,ResourceLimited,Screening clinicalClass
+    class Atelectasis,Cardiomegaly,Effusion,Infiltration,Mass,Nodule,Pneumonia,Pneumothorax,Consolidation,Edema,Emphysema,Fibrosis,PleuralThick,Hernia diseaseClass
