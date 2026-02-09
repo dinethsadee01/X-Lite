@@ -1,0 +1,71 @@
+"""
+Compare available teacher model options for Knowledge Distillation
+"""
+
+print("=" * 80)
+print("TEACHER MODEL OPTIONS FOR KNOWLEDGE DISTILLATION")
+print("=" * 80)
+
+print("\n1. CheXNet (Stanford) - EXACT MATCH ✓✓✓")
+print("   - Source: Stanford ML Group (original ChestX-ray14 paper)")
+print("   - Pretrained on: ChestX-ray14 dataset (EXACT same dataset!)")
+print("   - Classes: 14 (perfect match, no extraction needed)")
+print("   - Architecture: DenseNet121")
+print("   - Published: 2017 (Rajpurkar et al.)")
+print("   - Availability: Public weights available")
+print("   - Pros: Perfect alignment with our task, proven benchmark")
+print("   - Cons: Older (2017), may have been surpassed")
+
+print("\n2. TorchXRayVision DenseNet121 (Current choice)")
+print("   - Source: Cohen et al. (2020)")
+print("   - Pretrained on: Multiple datasets (NIH ChestX-ray14 + PC, CX, RSNA, etc.)")
+print("   - Classes: 18 (includes all our 14 + 4 extra)")
+print("   - Architecture: DenseNet121")
+print("   - Published: 2020 (more recent)")
+print("   - Availability: pip install torchxrayvision")
+print("   - Pros: More diverse training data, newer, actively maintained")
+print("   - Cons: Need to extract 14 classes from 18")
+
+print("\n3. ImageNet DenseNet121 (Generic baseline)")
+print("   - Source: PyTorch torchvision")
+print("   - Pretrained on: ImageNet (natural images, NOT medical)")
+print("   - Classes: 1000 (completely different task)")
+print("   - Architecture: DenseNet121")
+print("   - Pros: Easy to use, standard baseline")
+print("   - Cons: Not domain-specific, would need full training")
+
+print("\n" + "=" * 80)
+print("RECOMMENDATION")
+print("=" * 80)
+
+print("\nFor Knowledge Distillation on ChestX-ray14:")
+print("\n  🥇 BEST: CheXNet")
+print("     - Trained on EXACT same dataset (ChestX-ray14)")
+print("     - Exact 14-class match (no extraction needed)")
+print("     - Proven benchmark performance")
+print("     - Teacher and student share identical label space")
+print("     - Simpler KD pipeline (no class mapping issues)")
+
+print("\n  🥈 ALTERNATIVE: TorchXRayVision")
+print("     - More diverse training (potentially better generalization)")
+print("     - Newer model (2020 vs 2017)")
+print("     - Requires extracting 14 from 18 classes")
+print("     - Still domain-specific (chest X-ray)")
+
+print("\n  ❌ AVOID: ImageNet pretrained")
+print("     - Not domain-specific")
+print("     - Would need full supervised training first")
+
+print("\n" + "=" * 80)
+print("NEXT STEPS")
+print("=" * 80)
+print("\nOption 1: Use CheXNet (RECOMMENDED)")
+print("  - Simplest setup: 14 classes → 14 classes")
+print("  - No disease mapping needed")
+print("  - Download: ~30MB from Stanford GitHub")
+print("  - Code already supports it!")
+
+print("\nOption 2: Use TorchXRayVision (Current)")
+print("  - Keep current setup")
+print("  - Fix: Use trained classifier, extract 14 from 18")
+print("  - More complex but potentially stronger teacher")
