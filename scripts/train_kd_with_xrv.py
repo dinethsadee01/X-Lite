@@ -4,6 +4,8 @@ Knowledge Distillation Training with TorchXRayVision Teacher
 Uses official TorchXRayVision preprocessing for teacher model.
 Student uses standard medical preprocessing with CLAHE.
 
+Teacher logits are PRECOMPUTED once before training starts,
+making each epoch as fast as normal baseline training.
 """
 
 import sys
@@ -15,6 +17,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import json
+import time
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -37,7 +40,6 @@ class KDLoss(nn.Module):
         self.temperature = temperature
         self.alpha = alpha  # Weight for KD loss
         self.kl_div = nn.KLDivLoss(reduction='batchmean')
-        self.bce = nn.BCEWithLogitsLoss(reduction='mean')
         self.focal_gamma = focal_gamma
     
     def focal_loss(self, logits, targets):
@@ -69,6 +71,74 @@ class KDLoss(nn.Module):
         total_loss = self.alpha * soft_loss + (1 - self.alpha) * hard_loss
         
         return total_loss, soft_loss, hard_loss
+
+
+def precompute_teacher_logits(teacher, teacher_preprocessor, image_ids, clahe_cache, device, batch_size=64):
+    """
+    Precompute teacher logits for ALL images once.
+    Teacher is frozen, so outputs never change — no need to recompute every epoch.
+    
+    Args:
+        teacher: Frozen teacher model
+        teacher_preprocessor: XRV preprocessor
+        image_ids: List of all image filenames
+        clahe_cache: Path to CLAHE cache directory
+        device: torch device
+        batch_size: Batch size for teacher inference
+    
+    Returns:
+        dict: {image_id: logits_tensor (14,)} in student's disease order
+    """
+    teacher.eval()
+    logits_cache = {}
+    
+    total = len(image_ids)
+    print(f"\nPrecomputing teacher logits for {total} images...")
+    print("  (This is a one-time cost — skipped on subsequent epochs)\n")
+    
+    start_time = time.time()
+    
+    with torch.no_grad():
+        for i in tqdm(range(0, total, batch_size), desc="Teacher inference"):
+            batch_ids = image_ids[i:i + batch_size]
+            
+            # Preprocess batch for teacher
+            teacher_images = []
+            for img_id in batch_ids:
+                img_path = clahe_cache / img_id
+                teacher_img = teacher_preprocessor.preprocess_single_image(str(img_path))
+                teacher_images.append(teacher_img)
+            teacher_images = torch.cat(teacher_images, dim=0).to(device)
+            
+            # Get teacher logits (14 classes in XRV order)
+            teacher_logits_xrv = teacher(teacher_images)
+            
+            # Reorder to student's order and store per image
+            teacher_logits = reorder_labels_batch_from_xrv(teacher_logits_xrv)
+            
+            for j, img_id in enumerate(batch_ids):
+                logits_cache[img_id] = teacher_logits[j].cpu()  # Store on CPU to save GPU memory
+    
+    elapsed = time.time() - start_time
+    print(f"\n✓ Precomputed {len(logits_cache)} teacher logits in {elapsed:.1f}s")
+    
+    return logits_cache
+
+
+def lookup_teacher_logits(img_ids, logits_cache, device):
+    """
+    Look up precomputed teacher logits for a batch of image IDs.
+    
+    Args:
+        img_ids: Tuple/list of image ID strings from DataLoader
+        logits_cache: Precomputed logits dict
+        device: torch device
+    
+    Returns:
+        torch.Tensor: [batch, 14] teacher logits on device
+    """
+    batch_logits = torch.stack([logits_cache[img_id] for img_id in img_ids])
+    return batch_logits.to(device)
 
 
 def train_kd():
@@ -124,12 +194,50 @@ def train_kd():
     print(f"✓ Train samples: {len(train_dataset)}")
     print(f"✓ Val samples: {len(val_dataset)}\n")
     
-    # Create models
+    # Create teacher model
     print("Creating teacher model...")
     teacher = create_teacher_model(device=device)
-    teacher.eval()  # Always in eval mode
+    teacher.eval()
     
-    print("\nCreating student model...")
+    # ========================================================
+    # PRECOMPUTE teacher logits ONCE (teacher is frozen)
+    # This eliminates per-batch teacher preprocessing overhead
+    # ========================================================
+    all_image_ids = list(set(
+        train_df['image_id'].tolist() + val_df['image_id'].tolist()
+    ))
+    
+    # Check for cached logits on disk
+    cache_path = KDConfig.CHECKPOINT_DIR / 'teacher_logits_cache.pt'
+    if cache_path.exists():
+        print(f"\n✓ Loading cached teacher logits from {cache_path}")
+        logits_cache = torch.load(cache_path, weights_only=True)
+        # Verify cache covers all images
+        missing = [img_id for img_id in all_image_ids if img_id not in logits_cache]
+        if missing:
+            print(f"  ⚠ Cache missing {len(missing)} images, recomputing...")
+            logits_cache = precompute_teacher_logits(
+                teacher, teacher_preprocessor, all_image_ids, clahe_cache, device
+            )
+            torch.save(logits_cache, cache_path)
+        else:
+            print(f"  ✓ Cache valid: {len(logits_cache)} images")
+    else:
+        logits_cache = precompute_teacher_logits(
+            teacher, teacher_preprocessor, all_image_ids, clahe_cache, device
+        )
+        # Save cache to disk for future runs
+        KDConfig.CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+        torch.save(logits_cache, cache_path)
+        print(f"  ✓ Saved teacher logits cache to {cache_path}")
+    
+    # Free teacher model from GPU (no longer needed)
+    del teacher
+    torch.cuda.empty_cache()
+    print("  ✓ Freed teacher model from GPU\n")
+    
+    # Create student model
+    print("Creating student model...")
     student = create_student_model(
         KDConfig.PRIMARY_STUDENT,
         num_classes=15,  # 14 + No_Finding
@@ -163,6 +271,8 @@ def train_kd():
     print("=" * 80 + "\n")
     
     for epoch in range(KDConfig.EPOCHS):
+        epoch_start = time.time()
+        
         # Train
         student.train()
         train_loss = 0.0
@@ -174,21 +284,8 @@ def train_kd():
             student_images = student_images.to(device)
             targets = targets.to(device)
             
-            # Get teacher predictions (with official XRV preprocessing)
-            with torch.no_grad():
-                # Preprocess images for teacher
-                teacher_images = []
-                for img_id in img_ids:
-                    img_path = clahe_cache / img_id
-                    teacher_img = teacher_preprocessor.preprocess_single_image(str(img_path))
-                    teacher_images.append(teacher_img)
-                teacher_images = torch.cat(teacher_images, dim=0).to(device)
-                
-                # Get teacher logits (14 classes in XRV order)
-                teacher_logits_xrv = teacher(teacher_images)
-                
-                # Reorder to student's order
-                teacher_logits = reorder_labels_batch_from_xrv(teacher_logits_xrv)
+            # Look up precomputed teacher logits (instant, no I/O)
+            teacher_logits = lookup_teacher_logits(img_ids, logits_cache, device)
             
             # Student forward pass
             student_logits = student(student_images)
@@ -226,16 +323,8 @@ def train_kd():
                 student_images = student_images.to(device)
                 targets = targets.to(device)
                 
-                # Teacher predictions
-                teacher_images = []
-                for img_id in img_ids:
-                    img_path = clahe_cache / img_id
-                    teacher_img = teacher_preprocessor.preprocess_single_image(str(img_path))
-                    teacher_images.append(teacher_img)
-                teacher_images = torch.cat(teacher_images, dim=0).to(device)
-                
-                teacher_logits_xrv = teacher(teacher_images)
-                teacher_logits = reorder_labels_batch_from_xrv(teacher_logits_xrv)
+                # Look up precomputed teacher logits
+                teacher_logits = lookup_teacher_logits(img_ids, logits_cache, device)
                 
                 # Student predictions
                 student_logits = student(student_images)
@@ -245,10 +334,12 @@ def train_kd():
                 val_loss += loss.item()
         
         avg_val_loss = val_loss / len(val_loader)
+        epoch_time = time.time() - epoch_start
         
-        print(f"\nEpoch {epoch+1}/{KDConfig.EPOCHS}:")
+        print(f"\nEpoch {epoch+1}/{KDConfig.EPOCHS} ({epoch_time:.1f}s):")
         print(f"  Train Loss: {avg_train_loss:.4f} (Soft: {avg_soft_loss:.4f}, Hard: {avg_hard_loss:.4f})")
         print(f"  Val Loss: {avg_val_loss:.4f}")
+        print(f"  LR: {optimizer.param_groups[0]['lr']:.6f}")
         
         # Learning rate scheduling
         scheduler.step(avg_val_loss)
@@ -258,9 +349,9 @@ def train_kd():
             best_val_loss = avg_val_loss
             patience_counter = 0
             
-            checkpoint_path = KDConfig.CHECKPOINT_DIR / f'kd_student_best.pth'
+            checkpoint_path = KDConfig.CHECKPOINT_DIR / 'kd_student_best.pth'
             torch.save({
-                'epoch': epoch,
+                'epoch': epoch + 1,
                 'model_state_dict': student.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'val_loss': avg_val_loss,
