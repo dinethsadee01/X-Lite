@@ -1,0 +1,34 @@
+sequenceDiagram
+    actor User
+    participant UI as Frontend
+    participant API as Backend API
+    participant ML as ML Model
+    participant DB as Storage
+
+    Note over User,DB: 1. Upload X-Ray
+    User->>UI: Select Image
+    UI->>API: Upload File
+    API->>DB: Save Image
+    DB-->>API: Filename
+    API-->>UI: Upload Success
+    
+    Note over User,DB: 2. Get Prediction
+    UI->>API: Request Prediction
+    API->>DB: Load & Preprocess
+    DB-->>API: Image Data
+    API->>ML: Run Inference
+    ML->>ML: CNN + Attention<br/>+ Classification
+    ML-->>API: Probabilities
+    API->>ML: Generate Grad-CAM
+    ML-->>API: Heatmap
+    API-->>UI: Results + Heatmap
+    UI-->>User: Display Results
+    
+    Note over User,DB: 3. Generate Report
+    User->>UI: Download Report
+    UI->>API: Request PDF
+    API->>DB: Load Image
+    API->>API: Create PDF
+    API->>DB: Save PDF
+    API-->>UI: PDF File
+    UI-->>User: Download PDF

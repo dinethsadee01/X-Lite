@@ -1,0 +1,194 @@
+classDiagram
+    %% API Models
+    class PredictionRequest {
+        +str filename
+        +bool return_heatmap
+        +float confidence_threshold
+    }
+    
+    class PredictionResult {
+        +str disease
+        +float probability
+        +str risk_level
+        +str color
+        +str description
+    }
+    
+    class PredictionResponse {
+        +bool success
+        +List~PredictionResult~ predictions
+        +List~str~ positive_findings
+        +str heatmap_base64
+        +str message
+    }
+    
+    %% Service Layer
+    class ImageService {
+        +Path upload_dir
+        +validate_image(file: UploadFile) bool
+        +save_image(file: UploadFile) str
+        +load_and_preprocess(filename: str) Tensor
+        +apply_clahe(image: ndarray) ndarray
+        +resize_and_normalize(image: ndarray) Tensor
+    }
+    
+    class PredictionService {
+        -StudentModel model
+        -torch.device device
+        -bool model_loaded
+        +load_model(model_path: str) void
+        +predict(image: Tensor, return_heatmap: bool) dict
+        +generate_gradcam(image: Tensor, target_class: int) ndarray
+        +assign_risk_level(probability: float) str
+        +get_disease_description(disease: str) str
+    }
+    
+    class ReportService {
+        +Path reports_dir
+        +generate_report(filename: str, predictions: dict) bytes
+        +create_pdf_document() Canvas
+        +add_header(pdf: Canvas, timestamp: str) void
+        +add_images(pdf: Canvas, xray: ndarray, heatmap: ndarray) void
+        +add_findings_table(pdf: Canvas, predictions: dict) void
+        +add_disclaimer(pdf: Canvas) void
+    }
+    
+    %% ML Models
+    class StudentModel {
+        -Module backbone
+        -Module attention
+        -Module classifier
+        +int num_classes
+        +str model_name
+        +forward(x: Tensor) Tensor
+        +get_features(x: Tensor) Tensor
+        +get_attention_weights() Tensor
+    }
+    
+    class TeacherModel {
+        -DenseNet121 backbone
+        +int num_classes
+        +forward(x: Tensor) Tensor
+        +load_chexnet_weights(path: str) void
+    }
+    
+    class ConvNeXtBackbone {
+        -Sequential stages
+        -LayerNorm norm
+        +int out_channels
+        +forward(x: Tensor) Tensor
+    }
+    
+    class MultiHeadSelfAttention {
+        -int num_heads
+        -int embed_dim
+        -Linear qkv_proj
+        -Linear out_proj
+        +forward(x: Tensor) Tensor
+        +get_attention_maps() Tensor
+    }
+    
+    class ClassificationHead {
+        -Linear fc1
+        -Linear fc2
+        -Dropout dropout
+        +int num_classes
+        +forward(x: Tensor) Tensor
+    }
+    
+    %% Training Components
+    class KDTrainer {
+        -StudentModel student
+        -TeacherModel teacher
+        -DistillationLoss criterion
+        -Optimizer optimizer
+        -DataLoader train_loader
+        -DataLoader val_loader
+        +float best_val_auc
+        +int best_epoch
+        +train(num_epochs: int) void
+        +validate() dict
+        +save_checkpoint(path: str) void
+        +load_checkpoint(path: str) void
+    }
+    
+    class DistillationLoss {
+        -float temperature
+        -float alpha
+        -BCEWithLogitsLoss task_loss
+        -KLDivLoss kd_loss
+        +Tensor pos_weights
+        +forward(student_logits: Tensor, teacher_logits: Tensor, targets: Tensor) Tensor
+        +compute_kd_loss(student: Tensor, teacher: Tensor) Tensor
+        +compute_task_loss(logits: Tensor, targets: Tensor) Tensor
+    }
+    
+    class ChestXrayDataset {
+        -DataFrame df
+        -Path data_dir
+        -Transform transform
+        -List~str~ disease_labels
+        +__len__() int
+        +__getitem__(idx: int) Tuple
+        +get_labels(idx: int) Tensor
+    }
+    
+    %% Configuration
+    class Config {
+        +str UPLOAD_DIR$
+        +str MODEL_PATH$
+        +Set~str~ ALLOWED_EXTENSIONS$
+        +int MAX_FILE_SIZE$
+        +float CONFIDENCE_THRESHOLD$
+        +get_config() dict$
+    }
+    
+    class DiseaseLabels {
+        +List~str~ DISEASE_LABELS$
+        +get_risk_level(probability: float) str$
+        +get_risk_color(risk_level: str) str$
+        +get_disease_description(disease: str) str$
+    }
+    
+    %% GradCAM
+    class GradCAM {
+        -Module model
+        -Module target_layer
+        -List gradients
+        -List activations
+        +generate_cam(input: Tensor, target_class: int) ndarray
+        +compute_gradients(output: Tensor, target: int) void
+        +get_cam_weights() Tensor
+        +overlay_heatmap(image: ndarray, cam: ndarray) ndarray
+    }
+    
+    %% Relationships
+    PredictionService --> StudentModel : uses
+    PredictionService --> GradCAM : uses
+    PredictionService --> PredictionResponse : creates
+    PredictionResponse --> PredictionResult : contains
+    
+    ImageService --> Config : uses
+    PredictionService --> Config : uses
+    PredictionService --> DiseaseLabels : uses
+    ReportService --> Config : uses
+    
+    StudentModel --> ConvNeXtBackbone : has
+    StudentModel --> MultiHeadSelfAttention : has
+    StudentModel --> ClassificationHead : has
+    
+    KDTrainer --> StudentModel : trains
+    KDTrainer --> TeacherModel : uses
+    KDTrainer --> DistillationLoss : uses
+    KDTrainer --> ChestXrayDataset : loads from
+    
+    TeacherModel --|> Module : inherits
+    StudentModel --|> Module : inherits
+    ConvNeXtBackbone --|> Module : inherits
+    MultiHeadSelfAttention --|> Module : inherits
+    ClassificationHead --|> Module : inherits
+    
+    %% Notes
+    note for StudentModel "Hybrid CNN-Transformer\nfor efficient inference"
+    note for TeacherModel "DenseNet121 with\nCheXNet weights"
+    note for DistillationLoss "KD Loss + Task Loss\nwith temperature scaling"

@@ -1,0 +1,38 @@
+---
+config:
+  layout: dagre
+  theme: mc
+---
+flowchart LR
+    XLite["X-Lite System"] --> Dataset["ChestX-ray14 Dataset"] & Clinical["Clinical Application"] & WebApp["Web Application"] & MLPipeline["ML Pipeline"]
+    WebApp --> Backend["FastAPI Backend"] & Services["Service Layer"] & Frontend["React Frontend"]
+    MLPipeline --> Training["Training Pipeline"] & Inference["Inference Pipeline"] & Models["Model Architecture"]
+    Training --> KD["Knowledge Distillation"] & Loss["Loss Functions"] & Optimizer["AdamW Optimizer"] & Scheduler["ReduceLROnPlateau"] & EarlyStopping["Early Stopping"] & Augmentation["Data Augmentation"] & Metrics["Evaluation Metrics"]
+    KD --> Teacher["Teacher Model"] & Student["Student Model"]
+    Inference --> Preprocessing["Preprocessing"] & Prediction["Prediction"] & PostProcessing["Post-Processing"] & Explainability["Explainability"]
+    Dataset --> Images["112K X-Ray Images"] & Labels["Multi-Label Annotations"] & Splits["Data Splits"]
+    Clinical --> Diagnosis["Computer-Aided Diagnosis"] & ResourceLimited["Resource-Constrained Settings"] & Screening["Mass Screening"]
+
+     XLite:::systemClass
+     Dataset:::dataClass
+     Clinical:::clinicalClass
+     WebApp:::systemClass
+     MLPipeline:::mlClass
+     Backend:::systemClass
+     Frontend:::systemClass
+     Training:::mlClass
+     Inference:::mlClass
+     KD:::mlClass
+     Teacher:::mlClass
+     Student:::mlClass
+     Images:::dataClass
+     Labels:::dataClass
+     Splits:::dataClass
+     Diagnosis:::clinicalClass
+     ResourceLimited:::clinicalClass
+     Screening:::clinicalClass
+    classDef systemClass fill:#1976d2,stroke:#0d47a1,color:#fff,stroke-width:2px
+    classDef mlClass fill:#388e3c,stroke:#1b5e20,color:#fff,stroke-width:2px
+    classDef dataClass fill:#f57c00,stroke:#e65100,color:#fff,stroke-width:2px
+    classDef clinicalClass fill:#7b1fa2,stroke:#4a148c,color:#fff,stroke-width:2px
+    classDef diseaseClass fill:#c62828,stroke:#b71c1c,color:#fff,stroke-width:1px
