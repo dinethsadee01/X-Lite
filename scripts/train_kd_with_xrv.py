@@ -4,7 +4,6 @@ Knowledge Distillation Training with TorchXRayVision Teacher
 Uses official TorchXRayVision preprocessing for teacher model.
 Student uses standard medical preprocessing with CLAHE.
 
-Alpha = 0.3: Conservative approach (30% KD + 70% ground truth)
 """
 
 import sys
@@ -33,7 +32,7 @@ from config.disease_mapping import reorder_labels_batch_from_xrv
 class KDLoss(nn.Module):
     """Knowledge Distillation Loss with Focal Loss for medical imaging"""
     
-    def __init__(self, temperature=6.0, alpha=0.3, focal_gamma=2.0):
+    def __init__(self, temperature=4.0, alpha=0.3, focal_gamma=2.0):
         super().__init__()
         self.temperature = temperature
         self.alpha = alpha  # Weight for KD loss
@@ -104,8 +103,8 @@ def train_kd():
     teacher_preprocessor = get_xrv_teacher_preprocessor(image_size=224)
     
     print("Loading datasets...")
-    train_df = pd.read_csv(train_csv)
-    val_df = pd.read_csv(val_csv)
+    train_df = pd.read_csv(train_csv).rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'})
+    val_df = pd.read_csv(val_csv).rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'})
     
     # Create data loaders (using student preprocessing)
     train_dataset = ChestXrayDataset(
@@ -152,7 +151,7 @@ def train_kd():
     )
     
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=3, verbose=True
+        optimizer, mode='min', factor=0.5, patience=3
     )
     
     # Training loop

@@ -55,7 +55,7 @@ class KDConfig:
     # Temperature: Controls softness of soft targets
     # - Higher T (T=8): Softer targets, more regularization
     # - Lower T (T=2): Harder targets, more focused learning
-    TEMPERATURE = 6.0  # Recommended range: 4-8
+    TEMPERATURE = 4.0  # Recommended range: 4-8
     
     # Alpha: Weight balance between hard and soft losses
     # - alpha=0.9: 90% KD loss (soft) + 10% CE loss (hard)
@@ -71,7 +71,7 @@ class KDConfig:
     LEARNING_RATE = 1e-3
     WEIGHT_DECAY = 1e-4
     GRADIENT_CLIP = 1.0
-    EARLY_STOPPING_PATIENCE = 10
+    EARLY_STOPPING_PATIENCE = 8
     
     # ============= Loss Function =============
     # Hard loss: CE or BCE depending on multi-label setup

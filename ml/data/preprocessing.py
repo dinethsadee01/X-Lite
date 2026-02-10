@@ -111,10 +111,21 @@ class CLAHEPreprocessor:
         """
         self.clip_limit = clip_limit
         self.tile_grid_size = tile_grid_size
-        self.clahe = cv2.createCLAHE(
-            clipLimit=clip_limit,
-            tileGridSize=tile_grid_size
-        )
+        # Lazy init for multiprocessing pickling compatibility
+        self._clahe = None
+
+    def _get_clahe(self):
+        if self._clahe is None:
+            self._clahe = cv2.createCLAHE(
+                clipLimit=self.clip_limit,
+                tileGridSize=self.tile_grid_size
+            )
+        return self._clahe
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['_clahe'] = None
+        return state
     
     def __call__(self, image: Image.Image) -> Image.Image:
         """
@@ -136,7 +147,7 @@ class CLAHEPreprocessor:
             gray = img_np
         
         # Apply CLAHE
-        enhanced = self.clahe.apply(gray)
+        enhanced = self._get_clahe().apply(gray)
         
         # Convert back to RGB for compatibility with models
         enhanced_rgb = cv2.cvtColor(enhanced, cv2.COLOR_GRAY2RGB)
