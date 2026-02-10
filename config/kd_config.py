@@ -62,7 +62,8 @@ class KDConfig:
     # - alpha=0.5: 50% KD loss + 50% CE loss (balanced)
     # - alpha=0.3: 30% KD loss + 70% CE loss (more reliable)
     # For medical imaging with explicit No_Finding class, recommend 0.5-0.7
-    ALPHA = 0.6  # Best balance for robust distillation
+    # Using 0.3 for conservative KD approach with weak teacher
+    ALPHA = 0.3  # Conservative: 30% KD loss + 70% ground truth
     
     # ============= Training Settings =============
     BATCH_SIZE = 32

@@ -191,7 +191,7 @@ def get_medical_transforms(
     std: list = None
 ) -> Callable:
     """
-    Get preprocessing transforms optimized for medical images
+    Get preprocessing transforms optimized for medical images (STUDENT MODEL ONLY)
     
     Args:
         image_size (int): Target image size

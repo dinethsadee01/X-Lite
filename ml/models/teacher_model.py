@@ -3,105 +3,136 @@ Teacher Model for Knowledge Distillation
 =========================================
 Implements DenseNet121 teacher models trained on chest X-ray data.
 
-Options:
-- CheXNet (RECOMMENDED): Stanford's model trained on ChestX-ray14 dataset (exact match!)
-- TorchXRayVision: Trained on multiple chest X-ray datasets (NIH + others)
-- ImageNet pretrained: Standard DenseNet121 from ImageNet
+SELECTED: TorchXRayVision DenseNet121 (NIH pretrained)
+- Trained on: Multiple chest X-ray datasets (ChestX-ray14 + PC + CX + RSNA)
+- Classes: 18 total (includes all 14 ChestX-ray14 diseases + 4 extras)
+- Architecture: DenseNet121
+- Key feature: Uses pretrained classifier (not random initialization)
+- Extraction: We extract 14 ChestX-ray14 classes from 18 total output
 
-CheXNet is recommended as it's trained on the exact same ChestX-ray14 dataset
-with the exact same 14 classes, providing perfect alignment for knowledge distillation.
-
-This model will be used to distill knowledge into lightweight student models.
+Why TorchXRayVision over CheXNet:
+- Modern PyTorch compatibility (no framework issues)
+- More diverse training data (better generalization)
+- Actively maintained
+- Already installed in environment
+- All 14 required classes have learned representations
 """
 
 import torch
 import torch.nn as nn
-import torchvision.models as models
-from pathlib import Path
-from typing import Optional, Literal
-import urllib.request
+from typing import Optional
+
+try:
+    import torchxrayvision as xrv
+    HAS_TORCHXRAYVISION = True
+except ImportError:
+    HAS_TORCHXRAYVISION = False
 
 
 class TeacherModel(nn.Module):
     """
-    Medical imaging teacher model for knowledge distillation.
+    TorchXRayVision DenseNet121 teacher for Knowledge Distillation.
     
-    Supports pretrained backends:
-    - CheXNet (RECOMMENDED): Stanford's ChestX-ray14 trained model (14 classes, exact match)
-    - Standard DenseNet121 (ImageNet): Generic image classification features
+    Uses the PRETRAINED classifier from TorchXRayVision (not random initialization).
+    Outputs logits for 14 ChestX-ray14 classes by extracting from the 18-class output.
     
     Args:
-        num_classes (int): Number of output classes (14 for ChestX-ray14)
-        pretrained (bool): Load pretrained weights
-        model_type (str): 'chexnet' | 'densenet'
-        freeze_backbone (bool): Freeze backbone weights during distillation
+        num_classes (int): Number of output classes to extract (should be 14)
+        extract_from_18 (bool): Extract 14 from 18 classes (True for ChestX-ray14)
     """
     
     def __init__(
         self,
         num_classes: int = 14,
-        pretrained: bool = True,
-        model_type: str = "chexnet",
-        freeze_backbone: bool = False,
+        extract_from_18: bool = True,
     ):
         super().__init__()
-        self.num_classes = num_classes
-        self.pretrained = pretrained
-        self.model_type = model_type
         
-        if model_type == "chexnet":
-            # CheXNet: DenseNet121 trained on ChestX-ray14
-            # Architecture: features + single Linear(1024, 14)
-            self.backbone = models.densenet121(pretrained=False)
-            num_features = self.backbone.classifier.in_features  # 1024
-            
-            # Replace classifier to match CheXNet structure
-            self.backbone.classifier = nn.Linear(num_features, num_classes)
-            
-        elif model_type == "densenet":
-            # Standard ImageNet-pretrained DenseNet121
-            if pretrained:
-                try:
-                    weights = models.DenseNet121_Weights.DEFAULT
-                    self.backbone = models.densenet121(weights=weights)
-                except Exception:
-                    self.backbone = models.densenet121(pretrained=True)
-            else:
-                self.backbone = models.densenet121(pretrained=False)
-            
-            num_features = self.backbone.classifier.in_features
-            self.backbone.classifier = nn.Linear(num_features, num_classes)
-            
-        else:
-            raise ValueError(
-                f"Unknown model_type: {model_type}. "
-                "Choose from: 'chexnet', 'densenet'"
+        if not HAS_TORCHXRAYVISION:
+            raise ImportError(
+                "torchxrayvision not installed. "
+                "Install with: pip install torchxrayvision"
             )
         
-        # Freeze backbone if requested (useful during KD to keep teacher fixed)
-        if freeze_backbone:
-            for param in self.backbone.parameters():
-                param.requires_grad = False
+        self.num_classes = num_classes
+        self.extract_from_18 = extract_from_18
+        
+        # Load full pretrained model with trained classifier
+        # This has 18 classes (ChestX-ray14 14 classes + 4 additional pathologies)
+        self.model = xrv.models.DenseNet(weights="densenet121-res224-all")
+        
+        # Freeze all parameters (teacher is not trained during KD)
+        for param in self.model.parameters():
+            param.requires_grad = False
+        
+        # Log model structure
+        print(f"✓ Loaded TorchXRayVision DenseNet121 (pretrained, frozen)")
+        print(f"  Model: densenet121-res224-all (trained on multiple datasets)")
+        print(f"  Total output classes: 18 (all pathologies)")
+        print(f"  Will extract: {num_classes} (ChestX-ray14 subset)")
+        print(f"  Input: Expects correctly preprocessed 1-channel images via XRV transforms")
+        
+        # XRV disease order (18 classes)
+        self.xrv_diseases_18 = [
+            'Atelectasis',           # 0
+            'Consolidation',         # 1
+            'Infiltration',          # 2
+            'Pneumothorax',          # 3
+            'Edema',                 # 4
+            'Emphysema',             # 5
+            'Fibrosis',              # 6
+            'Effusion',              # 7
+            'Pneumonia',             # 8
+            'Pleural_Thickening',    # 9
+            'Cardiomegaly',          # 10
+            'Nodule',                # 11
+            'Mass',                  # 12
+            'Hernia',                # 13
+            'Lung Lesion',           # 14 - NOT in ChestX-ray14
+            'Fracture',              # 15 - NOT in ChestX-ray14
+            'Lung Opacity',          # 16 - NOT in ChestX-ray14
+            'Enlarged Cardiomediastinum',  # 17 - NOT in ChestX-ray14
+        ]
+        
+        # ChestX-ray14 subset (indices in XRV's 18-class output)
+        self.chestxray14_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+        # These are the 14 diseases we care about (not 14, 15, 16, 17)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass
+        Forward pass - returns logits for 14 ChestX-ray14 classes.
+        
+        IMPORTANT: Input must be preprocessed using official TorchXRayVision transforms:
+        - xrv.datasets.normalize(img, 255)
+        - xrv.datasets.XRayCenterCrop()
+        - xrv.datasets.XRayResizer(224)
         
         Args:
-            x (torch.Tensor): Input images (batch_size, 3, 224, 224) - RGB chest X-rays
+            x (torch.Tensor): Preprocessed images [batch_size, 1, 224, 224] (grayscale)
         
         Returns:
-            torch.Tensor: Logits (batch_size, num_classes)
+            torch.Tensor: Logits [batch_size, 14] for ChestX-ray14 diseases
         """
-        return self.backbone(x)
+        # Get full 18-class output from pretrained model
+        logits_18 = self.model(x)  # [batch_size, 18]
+        
+        # Extract only the 14 ChestX-ray14 classes
+        logits_14 = logits_18[:, self.chestxray14_indices]  # [batch_size, 14]
+        
+        return logits_14
+    
+    def to(self, device):
+        """Override to() to ensure all model parts are on the correct device"""
+        self.model = self.model.to(device)
+        return super().to(device)
     
     def get_num_params(self) -> int:
         """Get total number of parameters"""
-        return sum(p.numel() for p in self.parameters())
+        return sum(p.numel() for p in self.model.parameters())
     
     def get_model_size_mb(self) -> float:
         """Get model size in MB"""
-        size = sum(p.numel() * 4 for p in self.parameters()) / (1024 * 1024)
+        size = sum(p.numel() * 4 for p in self.model.parameters()) / (1024 * 1024)
         return size
 
 
@@ -109,75 +140,35 @@ def create_teacher_model(
     num_classes: int = 14,
     pretrained: bool = True,
     device: Optional[torch.device] = None,
-    model_type: str = "chexnet",
-    chexnet_weights_path: Optional[Path] = None,
 ) -> TeacherModel:
     """
-    Factory function to create teacher model with optimal defaults.
+    Factory function to create TorchXRayVision teacher model.
     
     Args:
-        num_classes (int): Number of output classes (default: 14)
-        pretrained (bool): Load pretrained weights (default: True)
-        device (torch.device): Device to load on (default: cuda if available, else cpu)
-        model_type (str): 'chexnet' (RECOMMENDED) | 'densenet'
-        chexnet_weights_path (Path): Path to CheXNet checkpoint (auto-downloads if missing)
+        num_classes (int): Number of output classes (must be 14 for ChestX-ray14)
+        pretrained (bool): Always True - uses XRV's pretrained weights
+        device (torch.device): Device to load on (default: cuda if available)
     
     Returns:
-        TeacherModel: Initialized model on specified device with pretrained weights
+        TeacherModel: Initialized model in eval mode on specified device
     
-    Examples:
-        # Best choice: CheXNet (exact ChestX-ray14 match)
-        model = create_teacher_model()  # Uses chexnet by default
-        
-        # Alternative: ImageNet-pretrained DenseNet121 (not recommended)
-        model = create_teacher_model(model_type='densenet')
+    Example:
+        >>> teacher = create_teacher_model()
+        >>> teacher.eval()
+        >>> logits = teacher(images)  # [batch_size, 14]
     """
+    if num_classes != 14:
+        raise ValueError(
+            f"Only 14 classes supported (ChestX-ray14). Got {num_classes}"
+        )
+    
     if device is None:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    # Create base model
-    model = TeacherModel(
-        num_classes=num_classes,
-        pretrained=False,  # We'll load weights manually for CheXNet
-        model_type=model_type,
-        freeze_backbone=True,  # Keep teacher frozen during KD
-    )
+    # Create model
+    model = TeacherModel(num_classes=num_classes, extract_from_18=True)
     
-    # Load CheXNet weights if requested
-    if model_type == "chexnet" and pretrained:
-        if chexnet_weights_path is None:
-            weights_dir = Path('data') / 'weights' / 'chexnet'
-            weights_dir.mkdir(parents=True, exist_ok=True)
-            chexnet_weights_path = weights_dir / 'model.pth.tar'
-        
-        # Auto-download if missing
-        chexnet_weights_url = 'https://github.com/arnoweng/CheXNet/raw/master/model.pth.tar'
-        if not chexnet_weights_path.exists():
-            print(f"Downloading CheXNet weights to: {chexnet_weights_path}")
-            urllib.request.urlretrieve(chexnet_weights_url, chexnet_weights_path)
-            print("✓ Download complete")
-        
-        # Load checkpoint
-        try:
-            checkpoint = torch.load(chexnet_weights_path, map_location=device, weights_only=False)
-        except TypeError:
-            checkpoint = torch.load(chexnet_weights_path, map_location=device)
-        
-        # Extract state dict (CheXNet uses DataParallel naming)
-        if 'state_dict' in checkpoint:
-            state_dict = checkpoint['state_dict']
-        else:
-            state_dict = checkpoint
-        
-        # Remove 'module.' prefix from DataParallel
-        new_state_dict = {}
-        for k, v in state_dict.items():
-            # module.densenet121.features.conv0.weight -> features.conv0.weight
-            name = k.replace('module.densenet121.', '')
-            new_state_dict[name] = v
-        
-        # Load into model
-        model.backbone.load_state_dict(new_state_dict, strict=True)
-        print("✓ CheXNet weights loaded successfully")
+    # Set to eval mode (frozen, no gradients)
+    model.eval()
     
     return model.to(device)
