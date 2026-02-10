@@ -40,7 +40,7 @@ except ImportError:
 OPTIMAL_THRESHOLDS_PATH = 'scripts/optimal_thresholds.json'
 NUM_SAMPLES = 10
 DEFAULT_THRESHOLD = 0.5
-USE_OPTIMAL_THRESHOLDS = True  # Set to False to use fixed 0.5 threshold
+USE_OPTIMAL_THRESHOLDS = False  # Set to False to use fixed 0.5 threshold
 
 
 def main():
@@ -82,7 +82,7 @@ def main():
     
     # Load teacher model
     print("Loading TorchXRayVision DenseNet-121 teacher model...")
-    model = create_teacher_model(model_type='torchxrayvision', device=device)
+    model = create_teacher_model(device=device)
     model.eval()
     
     # Print model info
@@ -93,7 +93,8 @@ def main():
     print(f"  Size: {model_size_mb:.1f} MB\n")
     
     # Create dataset with single-image batches
-    val_transform = get_medical_transforms(use_clahe=False, use_denoising=False)
+    # Use raw image values for TorchXRayVision (skip ImageNet normalization)
+    val_transform = get_medical_transforms(use_clahe=False, use_denoising=False, for_torchxrayvision=True)
     test_dataset = ChestXrayDataset(
         str(clahe_cache_dir), sample_df, transform=val_transform, is_training=False
     )
@@ -116,8 +117,10 @@ def main():
                     actual_diseases.append(label)
             
             # Predicted diseases (using appropriate threshold)
+            # Note: Teacher outputs only 14 classes (no No_Finding)
             predicted_diseases = []
-            for i, label in enumerate(DISEASE_LABELS):
+            for i in range(14):  # Only first 14 classes from teacher
+                label = DISEASE_LABELS[i]
                 # Get threshold for this disease
                 if USE_OPTIMAL_THRESHOLDS and optimal_thresholds:
                     threshold = optimal_thresholds.get(label, DEFAULT_THRESHOLD)
@@ -146,13 +149,15 @@ def main():
             print(f"ACTUAL:    {actual_str}")
             print(f"PREDICTED: {predicted_str}")
             
-            # Show all probabilities (sorted by confidence, excluding No_Finding)
-            prob_list = [(DISEASE_LABELS[i], probs[i]) for i in range(14)]  # First 14 classes only
+            # Show all probabilities (sorted by confidence, first 14 classes only)
+            # Note: Teacher outputs 14 classes; No_Finding is handled separately by hard labels
+            prob_list = [(DISEASE_LABELS[i], probs[i]) for i in range(14)]
             prob_list.sort(key=lambda x: x[1], reverse=True)
             
             print(f"\nDisease Probabilities (top 5):")
             for disease, prob in prob_list[:5]:
-                marker = "✓" if target[DISEASE_LABELS.index(disease)] == 1 else " "
+                disease_idx = DISEASE_LABELS.index(disease)
+                marker = "✓" if target[disease_idx] == 1 else " "
                 
                 # Get threshold for this disease
                 if USE_OPTIMAL_THRESHOLDS and optimal_thresholds:
@@ -163,20 +168,9 @@ def main():
                 pred_marker = "!" if prob >= threshold else ""
                 print(f"  [{marker}] {disease:<25} {prob:.4f} {pred_marker}")
             
-            # Show No_Finding probability separately
-            no_finding_prob = probs[14]
-            no_finding_actual = target[14] == 1
-            marker = "✓" if no_finding_actual else " "
-            
-            if USE_OPTIMAL_THRESHOLDS and optimal_thresholds:
-                no_finding_threshold = optimal_thresholds.get('No_Finding', DEFAULT_THRESHOLD)
-            else:
-                no_finding_threshold = DEFAULT_THRESHOLD
-            
-            pred_marker = "!" if no_finding_prob >= no_finding_threshold else ""
-            print(f"\nNo Finding:")
-            print(f"  [{marker}] No_Finding               {no_finding_prob:.4f} {pred_marker}")
-            print(f"  (Threshold: {no_finding_threshold:.2f})")
+            # Note: No_Finding is NOT part of teacher's 14-class output
+            # It's handled separately as a hard label target during KD training
+            print(f"\n[Teacher outputs only 14 classes; No_Finding handled separately in KD]")
             
             print("=" * 80)
     
