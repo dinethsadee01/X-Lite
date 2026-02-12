@@ -46,20 +46,24 @@ Lightweight architectures combining efficient CNNs with transformer attention:
 ## 📁 Project Structure
 
 ```
-x-lite-chest-xray/
-├── config/              # Configuration files
+X-Lite/
+├── config/              # Configuration files (Python)
 ├── ml/                  # Machine learning pipeline
 │   ├── data/           # Data loading & preprocessing
-│   ├── models/         # Model architectures
-│   ├── training/       # Training & distillation
+│   ├── models/         # Model architectures (student & teacher)
+│   ├── training/       # Training & knowledge distillation
 │   ├── inference/      # Prediction & explainability
 │   └── evaluation/     # Metrics & validation
-├── backend/            # Flask/FastAPI backend
+├── backend/            # FastAPI backend server
+│   ├── app.py         # Main FastAPI application
+│   ├── routes/        # API endpoints
+│   └── services/      # Business logic
 ├── frontend/           # React frontend
 ├── notebooks/          # Jupyter notebooks for experiments
-├── scripts/            # Utility scripts
-├── tests/              # Unit & integration tests
-└── docs/               # Documentation
+├── scripts/            # Utility scripts for training, eval, visualization
+├── data/              # Dataset folder (images, splits, cache)
+├── experiments/       # Logs, results, checkpoints
+└── docs/              # Documentation
 ```
 
 ## 🛠️ Installation
@@ -67,14 +71,37 @@ x-lite-chest-xray/
 ```bash
 # Clone repository
 git clone https://github.com/dinethsadee01/X-Lite.git
-cd x-lite-chest-xray
+cd X-Lite
 
 # Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+```
+
+## ⚡ Quick Start
+
+### Run the Web Application
+
+```bash
+# Terminal 1: Start the backend API
+python -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 2: Start the frontend (in a new terminal)
+cd frontend
+npm install
+npm start
+```
+
+Then open `http://localhost:3000` in your browser to upload and analyze chest X-rays.
+
+### Test with Pre-trained Model
+
+```bash
+# Verify the model works
+python scripts/verify_predictions.py
 ```
 
 ## 📈 Training Pipeline
@@ -85,40 +112,68 @@ pip install -r requirements.txt
 python scripts/download_chestxray14.py
 ```
 
-### 2. Train Teacher Model
+### 2. Preprocess Images (CLAHE Enhancement)
 
 ```bash
-python scripts/train_teacher.py --config config/teacher_config.yaml
+python scripts/precompute_clahe.py
 ```
 
-### 3. Knowledge Distillation
+### 3. Train Baseline Model
 
 ```bash
-python scripts/distill_student.py --config config/student_config.yaml
+python scripts/train_baseline.py --student_model efficientnet_b0_performer
 ```
 
-### 4. Evaluation
+### 4. Knowledge Distillation Training
 
 ```bash
-python scripts/evaluate.py --model checkpoints/student_best.pth
+python scripts/train_kd_with_xrv.py --student_model efficientnet_b0_performer
+```
+
+### 5. Evaluate on Test Set
+
+```bash
+python scripts/evaluate_test_set.py --student_model efficientnet_b0_performer
+```
+
+### 6. Cross-Validation Analysis
+
+```bash
+python scripts/cross_validation_analysis.py
+```
+
+### 7. Generate Visualizations
+
+```bash
+python scripts/generate_kd_visualizations.py
 ```
 
 ## 🌐 Web Application
 
-### Backend
+### Backend (FastAPI)
 
 ```bash
-cd backend
-python app.py
+# Option 1: Using uvicorn directly
+python -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+
+# Option 2: Running app.py directly (uses built-in uvicorn)
+python backend/app.py
 ```
 
-### Frontend
+The API will be available at:
+- Main endpoint: `http://localhost:8000`
+- API docs (Swagger): `http://localhost:8000/api/docs`
+- Health check: `http://localhost:8000/api/health`
+
+### Frontend (React)
 
 ```bash
 cd frontend
 npm install
 npm start
 ```
+
+The frontend will open at `http://localhost:3000` and automatically proxy API calls to `http://localhost:8000`
 
 ## 📊 Evaluation Metrics
 
@@ -151,4 +206,18 @@ This project is for academic research purposes.
 
 ---
 
-**Status**: 🚧 In Development (Final Year Project 2026)
+**Status**: ✅ Phase 4 Complete (February 2026)
+
+**Final Model**: EfficientNet-B0 with Performer Attention + Knowledge Distillation
+- **Test AUC**: 0.8390 (on 16,818 unseen images)
+- **Validation AUC**: 0.8446
+- **Baseline AUC**: 0.8351 (no distillation)
+- **Training Efficiency**: 3× faster convergence (15 vs 50 epochs)
+
+**Deliverables**:
+- ✅ Trained student model with knowledge distillation
+- ✅ Test set evaluation on unseen data
+- ✅ Cross-validation analysis
+- ✅ Calibration curves for reliability assessment
+- ✅ Web application (FastAPI + React)
+- ✅ Complete documentation and visualizations
