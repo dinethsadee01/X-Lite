@@ -22,7 +22,7 @@ class Config:
     
     # ============= Dataset Settings =============
     DATASET_NAME = 'ChestX-ray14'
-    NUM_CLASSES = 14
+    NUM_CLASSES = 15  # 14 diseases + No_Finding
     IMAGE_SIZE = 224  # Default input size (can be overridden per model)
     
     # Data splits

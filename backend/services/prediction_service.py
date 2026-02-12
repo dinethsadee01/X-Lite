@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import time
 import torch
+import json
 from typing import Dict, List, Optional
 from PIL import Image
 
@@ -15,9 +16,10 @@ from config import Config, DISEASE_LABELS, DISEASE_DESCRIPTIONS, get_risk_level,
 from ml.data.preprocessing import get_medical_transforms
 from ml.models.student_model import create_student_model, MODEL_CONFIGS
 
-DEFAULT_MODEL_ARCH = "convnext_tiny_mhsa"
+DEFAULT_MODEL_ARCH = "efficientnet_b0_performer"
 DEFAULT_MODEL_NAME = "X-Lite model 001"
 DEFAULT_MODEL_PATH = Config.CHECKPOINT_DIR / "final" / "X-Lite_model_001.pth"
+OPTIMAL_THRESHOLDS_PATH = Config.ROOT_DIR / "scripts" / "optimal_thresholds.json"
 
 
 class PredictionService:
@@ -35,6 +37,7 @@ class PredictionService:
         self.model_name = DEFAULT_MODEL_NAME
         self.device = self._get_device()
         self.transform = get_medical_transforms(use_clahe=True, use_denoising=False)
+        self.optimal_thresholds = self._load_optimal_thresholds()
 
         if model_path:
             self.load_model(model_path)
@@ -58,6 +61,20 @@ class PredictionService:
             return torch.device('mps')
         else:
             return torch.device('cpu')
+    
+    def _load_optimal_thresholds(self) -> Dict[str, float]:
+        """Load optimal per-disease thresholds from JSON file"""
+        try:
+            if OPTIMAL_THRESHOLDS_PATH.exists():
+                with open(OPTIMAL_THRESHOLDS_PATH, 'r') as f:
+                    thresholds = json.load(f)
+                # Include all disease labels (now 15 classes including No_Finding)
+                return {k: v for k, v in thresholds.items() if k in DISEASE_LABELS}
+            else:
+                return {}
+        except Exception as e:
+            print(f"Warning: Could not load optimal thresholds: {e}")
+            return {}
     
     def _find_default_checkpoint(self) -> Optional[Path]:
         """Find the best available checkpoint for inference."""
@@ -101,7 +118,9 @@ class PredictionService:
         self.model_arch = model_arch or inferred_arch or self.model_arch
         self.model_name = model_display_name or inferred_arch or self.model_name
 
-        model = create_student_model(self.model_arch, num_classes=Config.NUM_CLASSES, pretrained=False)
+        # Use number of classes from DISEASE_LABELS (15 classes including No_Finding)
+        num_classes = len(DISEASE_LABELS)
+        model = create_student_model(self.model_arch, num_classes=num_classes, pretrained=False)
 
         try:
             checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
@@ -164,17 +183,21 @@ class PredictionService:
             risk = get_risk_level(prob)
             color = get_risk_color(prob)
             
+            # Use optimal threshold if available, otherwise use default
+            disease_threshold = self.optimal_thresholds.get(disease, threshold)
+            
             pred_result = {
                 "disease": disease,
                 "probability": round(prob, 4),
                 "risk_level": risk,
                 "color": color,
-                "description": DISEASE_DESCRIPTIONS.get(disease, "")
+                "description": DISEASE_DESCRIPTIONS.get(disease, ""),
+                "threshold": round(disease_threshold, 3)
             }
             
             predictions.append(pred_result)
             
-            if prob >= threshold:
+            if prob >= disease_threshold:
                 positive_findings.append(disease)
         
         # Processing time
