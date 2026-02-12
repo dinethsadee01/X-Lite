@@ -50,10 +50,10 @@ from scripts.training_utils import evaluate_final_metrics
 MODEL_NAME = 'efficientnet_b0_performer'
 
 # Path to checkpoint file (best_checkpoint.pth or last_checkpoint.pth)
-CHECKPOINT_PATH = 'ml/models/checkpoints/efficientnet_b0_performer_full_dataset_15class/best_checkpoint.pth'
+CHECKPOINT_PATH = 'ml/models/checkpoints/kd_student_best.pth'
 
 # Stage identifier (for results file naming)
-STAGE = 'baseline'  # Options: 'baseline', 'after_kd', 'final_tuned'
+STAGE = 'after_kd'  # Options: 'baseline', 'after_kd', 'final_tuned'
 
 # Batch size for inference
 BATCH_SIZE = 32

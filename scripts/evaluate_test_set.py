@@ -80,7 +80,13 @@ def load_checkpoint(checkpoint_path: Path, model: torch.nn.Module, device: torch
     """Load model checkpoint"""
     print(f"Loading checkpoint from: {checkpoint_path}")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    model.load_state_dict(checkpoint['student_state_dict'])
+    if 'student_state_dict' in checkpoint:
+        state_dict = checkpoint['student_state_dict']
+    elif 'model_state_dict' in checkpoint:
+        state_dict = checkpoint['model_state_dict']
+    else:
+        state_dict = checkpoint
+    model.load_state_dict(state_dict)
     model.to(device)
     model.eval()
     print("✓ Checkpoint loaded successfully")
