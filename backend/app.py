@@ -15,7 +15,9 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import Config
-from backend.routes import predict, upload, health, report
+from backend.routes import predict, upload, health, report, auth, history
+from backend.services.db_service import connect_to_mongo, close_mongo_connection
+from backend.routes.auth import init_default_user
 
 # Create FastAPI app
 app = FastAPI(
@@ -40,6 +42,8 @@ app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(predict.router, prefix="/api", tags=["prediction"])
 app.include_router(report.router, prefix="/api", tags=["report"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(history.router, prefix="/api/history", tags=["history"])
 
 # Serve static files (uploaded images, reports)
 app.mount("/static", StaticFiles(directory=str(Config.UPLOAD_FOLDER)), name="static")
@@ -50,14 +54,15 @@ async def startup_event():
     """Initialize app on startup"""
     # Create necessary directories
     Config.create_directories()
-    print("✓ X-Lite API initialized")
-    print(f"✓ Upload folder: {Config.UPLOAD_FOLDER}")
-    print(f"✓ Checkpoint folder: {Config.CHECKPOINT_DIR}")
+    
+    # Connect to MongoDB
+    # connect_to_mongo()
 
-
-@app.on_event("shutdown")
+    # Seed default user
+    # await init_default_user()
 async def shutdown_event():
     """Cleanup on shutdown"""
+    # close_mongo_connection()
     print("✓ X-Lite API shutdown")
 
 
