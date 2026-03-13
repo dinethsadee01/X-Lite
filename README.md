@@ -81,6 +81,60 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## 🔧 Web App Setup (Clone-Ready)
+
+### 1. Backend Environment File
+
+Copy `.env.example` to `.env`, then update values as needed:
+
+```bash
+cp .env.example .env
+# Windows PowerShell:
+Copy-Item .env.example .env
+```
+
+Or create a `.env` file in the project root:
+
+```env
+MONGODB_URL=mongodb+srv://<username>:<password>@<cluster-url>/?retryWrites=true&w=majority
+MONGODB_DB_NAME=xlite_db
+SECRET_KEY=replace_with_a_long_random_secret
+REACT_APP_API_URL=http://localhost:8000/api
+```
+
+### 2. Frontend Dependencies
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 3. Start the App
+
+```bash
+# Terminal 1 (backend)
+uvicorn backend.app:app --reload
+
+# Terminal 2 (frontend)
+cd frontend
+npm start
+```
+
+### 4. Demo Login (DB-Bypass Mode)
+
+Current repository state supports demo login flow with:
+
+- Username: `doctor`
+- Password: `password123`
+
+This allows core flow testing:
+
+- Upload chest X-ray
+- Run prediction
+- View result page
+- Download PDF report
+
 ## ⚡ Quick Start
 
 ### Run the Web Application
