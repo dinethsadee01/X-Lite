@@ -6,6 +6,8 @@ import ImageUpload from './components/ImageUpload';
 import PredictionResults from './components/PredictionResults';
 import LoadingSpinner from './components/LoadingSpinner';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
 function App() {
   const [uploadedImage, setUploadedImage] = useState(null);
   const [predictions, setPredictions] = useState(null);
@@ -21,7 +23,7 @@ function App() {
       formData.append('file', file);
 
       // Upload image
-      const uploadResponse = await fetch('http://localhost:8000/api/upload', {
+      const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -31,20 +33,25 @@ function App() {
       }
 
       const uploadData = await uploadResponse.json();
+      const uploadedFilename = uploadData?.data?.filename;
+      if (!uploadedFilename) {
+        throw new Error('Upload response missing filename');
+      }
+
       setUploadedImage({
         file: file,
         preview: URL.createObjectURL(file),
-        filename: uploadData.data.filename,
+        filename: uploadedFilename,
       });
 
       // Get prediction
-      const predictResponse = await fetch('http://localhost:8000/api/predict', {
+      const predictResponse = await fetch(`${API_BASE_URL}/predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          filename: uploadData.data.filename,
+          filename: uploadedFilename,
           return_heatmap: true,
           confidence_threshold: 0.5,
         }),

@@ -52,7 +52,7 @@ async def get_status():
     available_models = []
     if checkpoint_exists:
         available_models = [
-            f.stem for f in Config.CHECKPOINT_DIR.glob("*.pth")
+            f.stem for f in Config.CHECKPOINT_DIR.rglob("*.pth")
         ]
     
     return {

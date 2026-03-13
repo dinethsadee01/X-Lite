@@ -18,7 +18,7 @@ from ml.models.student_model import create_student_model, MODEL_CONFIGS
 
 DEFAULT_MODEL_ARCH = "efficientnet_b0_performer"
 DEFAULT_MODEL_NAME = "X-Lite model 001"
-DEFAULT_MODEL_PATH = Config.CHECKPOINT_DIR / "final" / "X-Lite_model_001.pth"
+DEFAULT_MODEL_PATH = Config.CHECKPOINT_DIR / "efficientnet_b0_performer_full_dataset_15class" / "best_checkpoint.pth"
 OPTIMAL_THRESHOLDS_PATH = Config.ROOT_DIR / "scripts" / "optimal_thresholds.json"
 
 
@@ -42,16 +42,16 @@ class PredictionService:
         if model_path:
             self.load_model(model_path)
         else:
-            if DEFAULT_MODEL_PATH.exists():
-                self.load_model(
-                    str(DEFAULT_MODEL_PATH),
-                    model_arch=DEFAULT_MODEL_ARCH,
-                    model_display_name=DEFAULT_MODEL_NAME
+            if not DEFAULT_MODEL_PATH.exists():
+                raise FileNotFoundError(
+                    f"Required model checkpoint not found: {DEFAULT_MODEL_PATH}"
                 )
-            else:
-                default_ckpt = self._find_default_checkpoint()
-                if default_ckpt is not None:
-                    self.load_model(str(default_ckpt))
+
+            self.load_model(
+                str(DEFAULT_MODEL_PATH),
+                model_arch=DEFAULT_MODEL_ARCH,
+                model_display_name=DEFAULT_MODEL_NAME
+            )
     
     def _get_device(self) -> torch.device:
         """Get computation device"""
@@ -180,7 +180,7 @@ class PredictionService:
         positive_findings = []
         
         for i, (disease, prob) in enumerate(zip(DISEASE_LABELS, probabilities)):
-            risk = get_risk_level(prob)
+            risk = get_risk_level(prob).title()
             color = get_risk_color(prob)
             
             # Use optimal threshold if available, otherwise use default

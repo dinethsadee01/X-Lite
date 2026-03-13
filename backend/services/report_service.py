@@ -7,6 +7,8 @@ from pathlib import Path
 import sys
 from datetime import datetime
 from typing import List, Dict
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import Config
@@ -38,23 +40,55 @@ class ReportService:
         Returns:
             Path: Path to generated PDF report
         """
-        # TODO: Implement actual PDF generation using reportlab
-        # For now, create a placeholder text file
-        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_filename = f"report_{patient_id}_{timestamp}.txt"
+        report_filename = f"report_{patient_id}_{timestamp}.pdf"
         report_path = self.reports_dir / report_filename
         
         # Generate report content
         content = self._generate_report_content(
             patient_id, predictions, image_filename, notes
         )
-        
-        # Save report
-        with open(report_path, 'w') as f:
-            f.write(content)
+
+        # Save report as PDF
+        self._write_pdf_report(report_path, content)
         
         return report_path
+
+    def _write_pdf_report(self, report_path: Path, content: str):
+        """Write text content to a simple multi-page PDF."""
+        pdf = canvas.Canvas(str(report_path), pagesize=letter)
+        width, height = letter
+        left_margin = 40
+        top_margin = 40
+        line_height = 14
+        y = height - top_margin
+
+        pdf.setFont("Helvetica", 10)
+
+        for raw_line in content.splitlines():
+            line = raw_line
+
+            # Basic hard wrap for long lines
+            while len(line) > 110:
+                chunk = line[:110]
+                pdf.drawString(left_margin, y, chunk)
+                y -= line_height
+                line = line[110:]
+
+                if y < top_margin:
+                    pdf.showPage()
+                    pdf.setFont("Helvetica", 10)
+                    y = height - top_margin
+
+            pdf.drawString(left_margin, y, line)
+            y -= line_height
+
+            if y < top_margin:
+                pdf.showPage()
+                pdf.setFont("Helvetica", 10)
+                y = height - top_margin
+
+        pdf.save()
     
     def _generate_report_content(
         self,

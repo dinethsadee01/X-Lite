@@ -159,7 +159,7 @@ async def list_available_models():
         models = []
         
         if Config.CHECKPOINT_DIR.exists():
-            for model_path in Config.CHECKPOINT_DIR.glob("*.pth"):
+            for model_path in Config.CHECKPOINT_DIR.rglob("*.pth"):
                 size_mb = model_path.stat().st_size / (1024 * 1024)
                 models.append({
                     "name": model_path.stem,

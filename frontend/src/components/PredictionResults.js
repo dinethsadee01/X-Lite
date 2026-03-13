@@ -23,11 +23,9 @@ const PredictionResults = ({ image, predictions, onReset }) => {
 
   const getRiskColor = (riskLevel) => {
     switch (riskLevel?.toLowerCase()) {
-      case 'critical':
-        return '#d32f2f';
       case 'high':
-        return '#f57c00';
-      case 'moderate':
+        return '#d32f2f';
+      case 'medium':
         return '#fbc02d';
       case 'low':
         return '#388e3c';
@@ -38,11 +36,9 @@ const PredictionResults = ({ image, predictions, onReset }) => {
 
   const getRiskBgColor = (riskLevel) => {
     switch (riskLevel?.toLowerCase()) {
-      case 'critical':
-        return '#ffebee';
       case 'high':
-        return '#fff3e0';
-      case 'moderate':
+        return '#ffebee';
+      case 'medium':
         return '#fffde7';
       case 'low':
         return '#e8f5e9';
