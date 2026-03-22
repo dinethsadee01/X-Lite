@@ -20,8 +20,7 @@ import pandas as pd
 import numpy as np
 import json
 from ml.models.teacher_model import create_teacher_model
-from ml.data.loader import ChestXrayDataset
-from ml.data.preprocessing import get_medical_transforms
+from ml.data.xrv_preprocessing import get_xrv_teacher_preprocessor
 
 # Explicit local imports to avoid conflicts with torchxrayvision's config module
 try:
@@ -41,6 +40,22 @@ OPTIMAL_THRESHOLDS_PATH = 'scripts/optimal_thresholds.json'
 NUM_SAMPLES = 10
 DEFAULT_THRESHOLD = 0.5
 USE_OPTIMAL_THRESHOLDS = False  # Set to False to use fixed 0.5 threshold
+
+
+def parse_labels_to_multihot(label_str: str) -> torch.Tensor:
+    """Convert a ChestX-ray14 label string to 15-class multi-hot vector."""
+    target = torch.zeros(len(DISEASE_LABELS), dtype=torch.float32)
+
+    if pd.isna(label_str) or label_str == 'No Finding':
+        target[14] = 1.0
+        return target
+
+    for disease in str(label_str).split('|'):
+        disease = disease.strip()
+        if disease in DISEASE_LABELS:
+            target[DISEASE_LABELS.index(disease)] = 1.0
+
+    return target
 
 
 def main():
@@ -92,21 +107,20 @@ def main():
     print(f"  Parameters: {total_params:,}")
     print(f"  Size: {model_size_mb:.1f} MB\n")
     
-    # Create dataset with single-image batches
-    # Use raw image values for TorchXRayVision (skip ImageNet normalization)
-    val_transform = get_medical_transforms(use_clahe=False, use_denoising=False, for_torchxrayvision=True)
-    test_dataset = ChestXrayDataset(
-        str(clahe_cache_dir), sample_df, transform=val_transform, is_training=False
-    )
+    # Use official TorchXRayVision preprocessing for teacher inputs
+    teacher_preprocessor = get_xrv_teacher_preprocessor(image_size=224)
     
     # Process each sample
     print("=" * 80)
     with torch.no_grad():
         for idx in range(len(sample_df)):
-            image, target, img_id = test_dataset[idx]
+            row = sample_df.iloc[idx]
+            img_id = row['image_id']
+            target = parse_labels_to_multihot(row['labels'])
             
             # Get prediction
-            image_batch = image.unsqueeze(0).to(device)
+            image_path = clahe_cache_dir / img_id
+            image_batch = teacher_preprocessor.preprocess_single_image(str(image_path)).to(device)
             output = model(image_batch)
             probs = torch.sigmoid(output).cpu().numpy()[0]
             
