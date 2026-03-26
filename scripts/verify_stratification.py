@@ -1,7 +1,7 @@
 """
 Verify Multi-Label Stratification
 ==================================
-Check if the train/val/test splits preserve per-disease label frequencies.
+Check if the train/val/test splits preserve per-disease label frequencies without No Finding.
 """
 
 import sys
@@ -21,12 +21,12 @@ from config.disease_labels import DISEASE_LABELS
 def load_and_analyze_splits():
     """Load splits and compute per-disease frequencies"""
     
-    splits_dir = project_root / "data" / "splits"
+    splits_dir = project_root / "data" / "splits_old"
     
     # Load CSVs
-    train_df = pd.read_csv(splits_dir / "train.csv")
-    val_df = pd.read_csv(splits_dir / "val.csv")
-    test_df = pd.read_csv(splits_dir / "test.csv")
+    train_df = pd.read_csv(splits_dir / "train_df.csv")
+    val_df = pd.read_csv(splits_dir / "val_df.csv")
+    test_df = pd.read_csv(splits_dir / "test_df.csv")
     
     print(f"Loaded splits:")
     print(f"  Train: {len(train_df)} samples")
@@ -39,13 +39,16 @@ def load_and_analyze_splits():
         if 'Image Index' in df.columns:
             df.rename(columns={'Image Index': 'image_id', 'Finding Labels': 'labels'}, inplace=True)
     
+    # Filter out "No_Finding" from disease labels
+    disease_labels = [d for d in DISEASE_LABELS if d != 'No_Finding']
+    
     # Count disease frequencies in each split
     splits = {'train': train_df, 'val': val_df, 'test': test_df}
     disease_counts = {}
     disease_ratios = {}
     
     for split_name, df in splits.items():
-        counts = {disease: 0 for disease in DISEASE_LABELS}
+        counts = {disease: 0 for disease in disease_labels}
         
         for label_str in df['labels']:
             if pd.isna(label_str) or label_str == 'No Finding':
@@ -60,11 +63,11 @@ def load_and_analyze_splits():
         # Compute ratios (% of split that has this disease)
         total_positives = sum(counts.values())
         ratios = {disease: (counts[disease] / len(df) * 100) 
-                  for disease in DISEASE_LABELS}
+                  for disease in disease_labels}
         disease_ratios[split_name] = ratios
     
     # Compute overall frequencies
-    overall_counts = {disease: 0 for disease in DISEASE_LABELS}
+    overall_counts = {disease: 0 for disease in disease_labels}
     for split_counts in disease_counts.values():
         for disease, count in split_counts.items():
             overall_counts[disease] += count
@@ -72,7 +75,7 @@ def load_and_analyze_splits():
     total_all = sum(overall_counts.values())
     total_samples_all = len(train_df) + len(val_df) + len(test_df)
     overall_ratios = {disease: (overall_counts[disease] / total_samples_all * 100) 
-                      for disease in DISEASE_LABELS}
+                      for disease in disease_labels}
     
     # Print detailed comparison
     print("="*100)
@@ -83,7 +86,7 @@ def load_and_analyze_splits():
     
     max_deviations = []
     
-    for disease in DISEASE_LABELS:
+    for disease in disease_labels:
         train_pct = disease_ratios['train'][disease]
         val_pct = disease_ratios['val'][disease]
         test_pct = disease_ratios['test'][disease]
@@ -114,7 +117,7 @@ def load_and_analyze_splits():
     else:
         print(f"\n⚠️  Moderate stratification. Max deviation >= 10%")
     
-    return disease_ratios, overall_ratios, DISEASE_LABELS
+    return disease_ratios, overall_ratios, disease_labels
 
 
 def plot_stratification(disease_ratios, overall_ratios, disease_labels):
