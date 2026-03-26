@@ -530,9 +530,9 @@ def create_student_model(
         attention_type=attention_type,
         num_classes=num_classes,
         pretrained=pretrained,
-        attention_heads=8,
+        attention_heads=2,
         dropout=0.3,
-        num_features=256  # For Performer
+        num_features=32  # For Performer
     )
     
     return model

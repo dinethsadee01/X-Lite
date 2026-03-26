@@ -3,7 +3,7 @@ import skimage, torch, torchvision
 import numpy as np
 
 # Prepare the image:
-img = skimage.io.imread(r"C:\Users\User\Sadeepa\X-Lite\data\clahe_cache\00014919_011.png") # Load your image here
+img = skimage.io.imread(r"C:\Users\User\Sadeepa\X-Lite\data\clahe_cache\00012141_015.png") # Load your image here
 img = xrv.datasets.normalize(img, 255) # convert 8-bit image to [-1024, 1024] range
 if img.ndim == 3:
     img = img.mean(2)
