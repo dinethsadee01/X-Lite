@@ -21,6 +21,7 @@ img = torch.from_numpy(img)
 model = xrv.models.DenseNet(weights="densenet121-res224-all")
 outputs = model(img[None,...]) # or model.features(img[None,...])
 
-# Print results
+# Print results in descending order of values
 results = dict(zip(model.pathologies, outputs[0].detach().numpy()))
-print(results)
+sorted_results = dict(sorted(results.items(), key=lambda x: x[1], reverse=True))
+print(sorted_results)

@@ -1,4 +1,4 @@
-from xmlrpc.client import _datetime
+#without resume and low augmentation, with logging and plotting
 
 import numpy as np
 import pandas as pd
@@ -338,7 +338,7 @@ if __name__ == '__main__':
         undersample_targets=undersample_targets,
         oversample_targets=oversample_targets,
         random_state=42,
-        oversample_improvement_ratio=0.35,
+        oversample_improvement_ratio=0.01,
         min_improvement_samples=100,
     )
     logging.info(f"Balancing stats: {balance_stats}")
@@ -362,8 +362,8 @@ if __name__ == '__main__':
 
     num_epochs = 50
     early_stop_patience = 5
-    start_epoch = resume_from_epoch
-    best_auc = resume_best_auc
+    start_epoch = 0
+    best_auc = 0.0
     epochs_no_improve = 0
     
     history = {'train_loss': [], 'val_loss': [], 'train_auc': [], 'val_auc': []}

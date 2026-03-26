@@ -1,0 +1,2 @@
+checkpoint,architecture,num_classes,threshold,f1_macro,precision_macro,recall_macro,f1_micro,precision_micro,recall_micro,auc_macro
+scripts\dense121\checkpoints\model_epoch_19_0.7499.pth,efficientnet_b0_performer,15,0.5,0.17564014442967213,0.1436646551560272,0.7347800554642566,0.18720815141817918,0.11251003576381285,0.5570411592527011,0.7480387107830999

@@ -50,10 +50,10 @@ from scripts.training_utils import evaluate_final_metrics
 MODEL_NAME = 'efficientnet_b0_performer'
 
 # Path to checkpoint file (best_checkpoint.pth or last_checkpoint.pth)
-CHECKPOINT_PATH = 'ml/models/checkpoints/kd_student_best.pth'
+CHECKPOINT_PATH = 'ml/models/new checkpoints/efficientnet_b0_performer_full_dataset_15class_patientwise_lol/best_checkpoint.pth'
 
 # Stage identifier (for results file naming)
-STAGE = 'after_kd'  # Options: 'baseline', 'after_kd', 'final_tuned'
+STAGE = 'baseline'  # Options: 'baseline', 'after_kd', 'final_tuned'
 
 # Batch size for inference
 BATCH_SIZE = 32
@@ -121,7 +121,7 @@ def main():
 
     # Paths
     clahe_cache_dir = project_root / "data" / "clahe_cache"
-    test_csv = project_root / "data" / "splits" / "test.csv"
+    test_csv = project_root / "data" / "splits" / "test_df.csv"
     checkpoint_path = project_root / CHECKPOINT_PATH
 
     # Validate paths
@@ -233,7 +233,7 @@ def main():
     # Save results
     results_dir = project_root / "experiments"
     results_dir.mkdir(exist_ok=True)
-    results_file = results_dir / f"test_results_{STAGE}.json"
+    results_file = results_dir / f"test_results_{STAGE}_lol.json"
     
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=2)

@@ -37,9 +37,9 @@ from config.disease_labels import DISEASE_LABELS
 
 # Configuration
 MODEL_NAME = 'efficientnet_b0_performer'
-CHECKPOINT_PATH = 'ml/models/checkpoints/efficientnet_b0_performer_full_dataset_15class/best_checkpoint.pth'
+CHECKPOINT_PATH = 'ml/models/new checkpoints/efficientnet_b0_performer_full_dataset_15class_patientwise_lol/best_checkpoint.pth'
 NUM_CLASSES = 15
-THRESHOLD_RANGE = np.arange(0.1, 1.0, 0.05)  # Test thresholds from 0.1 to 0.95 in 0.05 steps
+THRESHOLD_RANGE = np.arange(0.01, 1.0, 0.001)  # Test thresholds from 0.01 to 0.95 in 0.001 steps
 OUTPUT_PATH = project_root / 'scripts' / 'optimal_thresholds.json'
 
 
@@ -49,7 +49,7 @@ def main():
     print("=" * 80)
     print(f"Model: {MODEL_NAME}")
     print(f"Checkpoint: {CHECKPOINT_PATH}")
-    print(f"Threshold range: {THRESHOLD_RANGE[0]:.2f} to {THRESHOLD_RANGE[-1]:.2f}")
+    print(f"Threshold range: {THRESHOLD_RANGE[0]:.3f} to {THRESHOLD_RANGE[-1]:.3f}")
     print("=" * 80)
     
     # Setup
@@ -58,7 +58,7 @@ def main():
     
     # Paths
     clahe_cache_dir = project_root / "data" / "clahe_cache"
-    val_csv = project_root / "data" / "splits" / "val.csv"
+    val_csv = project_root / "data" / "splits" / "val_df.csv"
     checkpoint_path = project_root / CHECKPOINT_PATH
     
     # Load validation data
@@ -169,7 +169,7 @@ def main():
         
         # Print results
         print(f"\n{disease_name:<25} (Positives: {int(class_targets.sum()):,})")
-        print(f"  Optimal Threshold:      {best_threshold:.2f}")
+        print(f"  Optimal Threshold:      {best_threshold:.3f}")
         print(f"    F1:        {best_f1:.4f}  (default 0.5: {f1_default:.4f})")
         print(f"    Precision: {best_precision:.4f}  (default 0.5: {precision_default:.4f})")
         print(f"    Recall:    {best_recall:.4f}  (default 0.5: {recall_default:.4f})")
@@ -196,11 +196,11 @@ def main():
     print("=" * 80)
     
     thresholds = [t for t in optimal_thresholds.values()]
-    print(f"Mean optimal threshold:   {np.mean(thresholds):.3f}")
-    print(f"Median optimal threshold: {np.median(thresholds):.3f}")
-    print(f"Min optimal threshold:    {np.min(thresholds):.3f}")
-    print(f"Max optimal threshold:    {np.max(thresholds):.3f}")
-    print(f"Std dev:                  {np.std(thresholds):.3f}")
+    print(f"Mean optimal threshold:   {np.mean(thresholds):.4f}")
+    print(f"Median optimal threshold: {np.median(thresholds):.4f}")
+    print(f"Min optimal threshold:    {np.min(thresholds):.4f}")
+    print(f"Max optimal threshold:    {np.max(thresholds):.4f}")
+    print(f"Std dev:                  {np.std(thresholds):.4f}")
     
     print("\n✓ Threshold optimization complete!")
     print(f"Use optimal thresholds in test_model.py by setting: USE_OPTIMAL_THRESHOLDS = True")
