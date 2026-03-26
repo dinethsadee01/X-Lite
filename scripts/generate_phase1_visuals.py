@@ -23,12 +23,12 @@ sys.path.insert(0, str(project_root))
 results_dir = project_root / "results"
 results_dir.mkdir(parents=True, exist_ok=True)
 
-metrics_path = project_root / "experiments" / "test_results_15class_optimized.json"
+metrics_path = project_root / "experiments" / "test_results_15class_optimized_lol.json"
 thresholds_path = project_root / "scripts" / "optimal_thresholds.json"
 
 CHECKPOINT_PATH = (
     project_root
-    / "ml/models/checkpoints/efficientnet_b0_performer_full_dataset_15class/best_checkpoint.pth"
+    / "ml/models/new checkpoints/efficientnet_b0_performer_full_dataset_15class_patientwise_lol/best_checkpoint.pth"
 )
 
 
@@ -51,7 +51,7 @@ def plot_auc_per_disease(metrics):
     plt.ylim(0.0, 1.0)
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_auc_per_disease.png", dpi=200)
+    plt.savefig(results_dir / "phase1_auc_per_disease_lol.png", dpi=200)
     plt.close()
 
 
@@ -72,7 +72,7 @@ def plot_f1_default_vs_optimal(metrics):
     plt.xticks(x, diseases, rotation=45, ha="right")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_f1_default_vs_optimal.png", dpi=200)
+    plt.savefig(results_dir / "phase1_f1_default_vs_optimal_lol.png", dpi=200)
     plt.close()
 
 
@@ -87,7 +87,7 @@ def plot_thresholds(thresholds):
     plt.ylim(0.0, 1.0)
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_thresholds.png", dpi=200)
+    plt.savefig(results_dir / "phase1_thresholds_lol.png", dpi=200)
     plt.close()
 
 
@@ -110,7 +110,7 @@ def plot_macro_metrics(metrics):
     plt.xticks(x, labels)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_macro_metrics.png", dpi=200)
+    plt.savefig(results_dir / "phase1_macro_metrics_lol.png", dpi=200)
     plt.close()
 
 
@@ -143,7 +143,7 @@ def get_test_predictions():
 
     # Load test set
     clahe_cache_dir = project_root / "data" / "clahe_cache"
-    test_csv = project_root / "data" / "splits" / "test.csv"
+    test_csv = project_root / "data" / "splits" / "test_df.csv"
     test_df = pd.read_csv(test_csv)
     if "Image Index" in test_df.columns:
         test_df = test_df.rename(columns={"Image Index": "image_id", "Finding Labels": "labels"})
@@ -234,9 +234,9 @@ def plot_roc_curves():
         fontsize=13, fontweight="bold", y=1.01,
     )
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_roc_curves.png", dpi=200, bbox_inches="tight")
+    plt.savefig(results_dir / "phase1_roc_curves_lol.png", dpi=200, bbox_inches="tight")
     plt.close()
-    print("✓ Saved: results/phase1_roc_curves.png")
+    print("✓ Saved: results/phase1_roc_curves_lol.png")
 
 
 def main():
