@@ -26,7 +26,7 @@ class KDConfig:
     # ============= Project Paths =============
     ROOT_DIR = Path(__file__).parent.parent
     DATA_DIR = ROOT_DIR / 'data'
-    CHECKPOINT_DIR = ROOT_DIR / 'ml' / 'models' / 'checkpoints'
+    CHECKPOINT_DIR = ROOT_DIR / 'ml' / 'models' / 'new checkpoints'
     
     # ============= Teacher Model Settings =============
     TEACHER_MODEL_TYPE = 'torchxrayvision'  # MUST USE XRV
@@ -67,11 +67,11 @@ class KDConfig:
     
     # ============= Training Settings =============
     BATCH_SIZE = 32
-    EPOCHS = 50
-    LEARNING_RATE = 1e-3
+    EPOCHS = 15
+    LEARNING_RATE = 1e-5
     WEIGHT_DECAY = 1e-4
     GRADIENT_CLIP = 1.0
-    EARLY_STOPPING_PATIENCE = 8
+    EARLY_STOPPING_PATIENCE = 5
     
     # ============= Loss Function =============
     # Hard loss: CE or BCE depending on multi-label setup

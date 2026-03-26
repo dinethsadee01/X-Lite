@@ -73,7 +73,23 @@ class KDLoss(nn.Module):
         return total_loss, soft_loss, hard_loss
 
 
-def precompute_teacher_logits(teacher, teacher_preprocessor, image_ids, clahe_cache, device, batch_size=64):
+class TeacherInferenceDataset(torch.utils.data.Dataset):
+    def __init__(self, image_ids, clahe_cache, preprocessor):
+        self.image_ids = image_ids
+        self.clahe_cache = Path(clahe_cache)
+        self.preprocessor = preprocessor
+
+    def __len__(self):
+        return len(self.image_ids)
+
+    def __getitem__(self, idx):
+        img_id = self.image_ids[idx]
+        img_path = self.clahe_cache / img_id
+        # Preprocessor returns [1, 1, H, W], we squeeze the outer batch dim for DataLoader
+        img_tensor = self.preprocessor.preprocess_single_image(str(img_path)).squeeze(0)
+        return img_id, img_tensor
+
+def precompute_teacher_logits(teacher, teacher_preprocessor, image_ids, clahe_cache, device, batch_size=128):
     """
     Precompute teacher logits for ALL images once.
     Teacher is frozen, so outputs never change — no need to recompute every epoch.
@@ -98,20 +114,22 @@ def precompute_teacher_logits(teacher, teacher_preprocessor, image_ids, clahe_ca
     
     start_time = time.time()
     
+    dataset = TeacherInferenceDataset(image_ids, clahe_cache, teacher_preprocessor)
+    loader = torch.utils.data.DataLoader(
+        dataset, 
+        batch_size=batch_size, 
+        shuffle=False, 
+        num_workers=4, 
+        pin_memory=True
+    )
+    
     with torch.no_grad():
-        for i in tqdm(range(0, total, batch_size), desc="Teacher inference"):
-            batch_ids = image_ids[i:i + batch_size]
+        for batch_ids, teacher_images in tqdm(loader, desc="Teacher inference"):
+            teacher_images = teacher_images.to(device, non_blocking=True)
             
-            # Preprocess batch for teacher
-            teacher_images = []
-            for img_id in batch_ids:
-                img_path = clahe_cache / img_id
-                teacher_img = teacher_preprocessor.preprocess_single_image(str(img_path))
-                teacher_images.append(teacher_img)
-            teacher_images = torch.cat(teacher_images, dim=0).to(device)
-            
-            # Get teacher logits (14 classes in XRV order)
-            teacher_logits_xrv = teacher(teacher_images)
+            with torch.amp.autocast('cuda' if teacher_images.is_cuda else 'cpu'):
+                # Get teacher logits (14 classes in XRV order)
+                teacher_logits_xrv = teacher(teacher_images)
             
             # Reorder to student's order and store per image
             teacher_logits = reorder_labels_batch_from_xrv(teacher_logits_xrv)
@@ -159,8 +177,8 @@ def train_kd():
     print(f"  Device: {device}\n")
     
     # Load data
-    train_csv = KDConfig.DATA_DIR / 'splits' / 'train.csv'
-    val_csv = KDConfig.DATA_DIR / 'splits' / 'val.csv'
+    train_csv = KDConfig.DATA_DIR / 'splits' / 'train_df.csv'
+    val_csv = KDConfig.DATA_DIR / 'splits' / 'val_df.csv'
     clahe_cache = KDConfig.CLAHE_CACHE
     
     # Student preprocessing (standard with CLAHE)
@@ -241,8 +259,23 @@ def train_kd():
     student = create_student_model(
         KDConfig.PRIMARY_STUDENT,
         num_classes=15,  # 14 + No_Finding
-        pretrained=True  # Start with ImageNet weights
+        pretrained=False  # We will load our own baseline weights
     )
+
+    # LOAD PRETRAINED CHECKPOINT HERE
+    baseline_checkpoint_path = project_root / "ml/models/new checkpoints/efficientnet_b0_performer_full_dataset_15class_patientwise_lol/best_checkpoint.pth"
+    
+    print(f"Loading pretrained baseline weights from: {baseline_checkpoint_path}")
+    checkpoint = torch.load(baseline_checkpoint_path, map_location=device)
+    
+    # Handle state dict depending on how it was saved
+    if 'model_state' in checkpoint:
+        student.load_state_dict(checkpoint['model_state'])
+    elif 'model_state_dict' in checkpoint:
+        student.load_state_dict(checkpoint['model_state_dict'])
+    else:
+        student.load_state_dict(checkpoint)
+
     student = student.to(device)
     
     # Loss and optimizer
