@@ -14,35 +14,73 @@ export default function Header() {
         navigate('/login');
     };
 
+    const navItems = [
+        { label: 'Home', path: '/' },
+        { label: 'Upload', path: '/upload' },
+        { label: 'Instructions', path: '/instructions' },
+        { label: 'History', path: '/history' },
+    ];
+
     return (
-        <AppBar position="static" color="transparent" elevation={1} sx={{ backgroundColor: 'white', mb: 4 }}>
-            <Toolbar>
-                <MonitorHeartIcon sx={{ color: '#1E3A8A', mr: 1, fontSize: 32 }} />
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#1E3A8A', cursor: 'pointer' }} onClick={() => navigate('/')}>
+        <AppBar
+            position="fixed"
+            color="transparent"
+            elevation={0}
+            sx={{
+                backgroundColor: 'transparent',
+                backdropFilter: 'none',
+                borderBottom: 'none',
+                px: 2,
+                pt: 1,
+            }}
+        >
+            <Toolbar sx={{ minHeight: 74, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <MonitorHeartIcon sx={{ color: '#1d4ed8', mr: 1, fontSize: 28 }} />
+                    <Typography variant="h6" component="div" sx={{ fontWeight: 800, color: '#1e3a8a', cursor: 'pointer' }} onClick={() => navigate('/')}>
                     X-Lite Medical
-                </Typography>
+                    </Typography>
+                </Box>
+
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 1.5,
+                        py: 1,
+                        borderRadius: 999,
+                        border: '1px solid #bfdbfe',
+                        backgroundColor: 'rgba(255, 255, 255, 0.82)',
+                        backdropFilter: 'blur(10px)',
+                        boxShadow: '0 10px 30px rgba(14, 116, 217, 0.10)',
+                    }}
+                >
+                    {navItems.map((item) => {
+                        const isActive = location.pathname === item.path;
+                        return (
+                            <Button
+                                key={item.path}
+                                onClick={() => navigate(item.path)}
+                                variant={isActive ? 'contained' : 'text'}
+                                color={isActive ? 'primary' : 'inherit'}
+                                sx={{ px: 2.2, borderRadius: 999 }}
+                            >
+                                {item.label}
+                            </Button>
+                        );
+                    })}
+                </Box>
                 
                 {user && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Button 
-                            color={location.pathname === '/' ? 'primary' : 'inherit'}
-                            onClick={() => navigate('/')}
-                        >
-                            Upload
-                        </Button>
-                        <Button 
-                            color={location.pathname === '/history' ? 'primary' : 'inherit'}
-                            onClick={() => navigate('/history')}
-                        >
-                            History
-                        </Button>
-                        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, bgcolor: '#f1f5f9', py: 0.5, px: 2, borderRadius: 2 }}>
-                            <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: '#1E3A8A' }}>Dr</Avatar>
-                            <Typography variant="body2" sx={{ mr: 2, fontWeight: 500 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,255,255,0.86)', py: 0.5, px: 1.5, borderRadius: 999, border: '1px solid #bfdbfe' }}>
+                            <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: '#1d4ed8' }}>Dr</Avatar>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {user.username}
                             </Typography>
                         </Box>
-                        <Button variant="outlined" color="error" size="small" onClick={handleLogout}>
+                        <Button variant="outlined" color="error" size="small" onClick={handleLogout} sx={{ borderRadius: 3 }}>
                             Sign Out
                         </Button>
                     </Box>

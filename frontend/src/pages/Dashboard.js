@@ -79,8 +79,8 @@ export default function Dashboard() {
     };
 
     return (
-        <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4, p: 3 }}>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1E3A8A', mb: 1 }}>
+        <Box sx={{ maxWidth: 900, mx: 'auto', mt: 4, p: 3 }}>
+            <Typography variant="h4" sx={{ color: '#1e3a8a', mb: 1 }}>
                 Clinical X-Ray Analysis
             </Typography>
             <Typography variant="body1" color="text.secondary" mb={4}>
@@ -93,16 +93,17 @@ export default function Dashboard() {
                     p: 6,
                     textAlign: 'center',
                     cursor: 'pointer',
-                    bgcolor: isDragActive ? '#e0f2fe' : '#f8fafc',
+                    bgcolor: isDragActive ? '#e0f2fe' : '#ffffff',
                     border: '2px dashed',
-                    borderColor: isDragActive ? '#3b82f6' : '#cbd5e1',
-                    borderRadius: 3,
+                    borderColor: isDragActive ? '#0ea5e9' : '#bfdbfe',
+                    borderRadius: 4,
                     transition: 'all 0.2s ease',
-                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#94a3b8' }
+                    boxShadow: '0 12px 30px rgba(29, 78, 216, 0.06)',
+                    '&:hover': { bgcolor: '#f8fbff', borderColor: '#60a5fa' }
                 }}
             >
                 <input {...getInputProps()} />
-                <CloudUploadIcon sx={{ fontSize: 64, color: '#94a3b8', mb: 2 }} />
+                <CloudUploadIcon sx={{ fontSize: 64, color: '#60a5fa', mb: 2 }} />
                 
                 {file ? (
                     <Box>
@@ -133,7 +134,7 @@ export default function Dashboard() {
                     size="large"
                     onClick={handleUploadAndPredict}
                     disabled={!file || uploading || analyzing}
-                    sx={{ bgcolor: '#1E3A8A', '&:hover': { bgcolor: '#1e40af' }, px: 4 }}
+                    sx={{ bgcolor: '#1d4ed8', '&:hover': { bgcolor: '#1e40af' }, px: 4 }}
                 >
                     {uploading ? <CircularProgress size={24} color="inherit" /> : 
                      analyzing ? 'Analyzing X-Ray...' : 'Run Diagnostics'}
@@ -144,7 +145,7 @@ export default function Dashboard() {
                     size="large"
                     disabled={!resultData}
                     onClick={() => navigate('/results', { state: { resultData } })}
-                    sx={{ px: 4, borderColor: '#1E3A8A', color: '#1E3A8A' }}
+                    sx={{ px: 4, borderColor: '#1d4ed8', color: '#1d4ed8' }}
                 >
                     View Diagnostic Report
                 </Button>

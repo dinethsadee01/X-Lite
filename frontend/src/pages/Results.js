@@ -85,10 +85,10 @@ export default function Results() {
         <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Box>
-                    <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/')} sx={{ mb: 1 }}>
+                    <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/')} sx={{ mb: 1, color: '#1d4ed8' }}>
                         Back to Upload
                     </Button>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1E3A8A' }}>Diagnostic Results</Typography>
+                    <Typography variant="h4" sx={{ color: '#1e3a8a' }}>Diagnostic Results</Typography>
                 </Box>
                 <Button 
                     variant="contained" 
@@ -96,7 +96,7 @@ export default function Results() {
                     startIcon={downloading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
                     onClick={handleDownloadReport}
                     disabled={downloading}
-                    sx={{ bgcolor: '#1E3A8A', '&:hover': { bgcolor: '#1e40af' } }}
+                    sx={{ bgcolor: '#1d4ed8', '&:hover': { bgcolor: '#1e40af' } }}
                 >
                     {downloading ? 'Preparing PDF...' : 'Download Clinical PDF'}
                 </Button>
@@ -105,7 +105,7 @@ export default function Results() {
             <Grid container spacing={4}>
                 {/* Image Section */}
                 <Grid item xs={12} md={7}>
-                    <Card sx={{ p: 2, bgcolor: '#f8fafc', boxShadow: 2 }}>
+                    <Card sx={{ p: 2.5, bgcolor: '#ffffff' }}>
                         <Typography variant="h6" mb={2} color="#475569">Imaging Visualization</Typography>
                         <Grid container spacing={2}>
                             <Grid item xs={6}>
@@ -128,8 +128,8 @@ export default function Results() {
 
                 {/* Findings Section */}
                 <Grid item xs={12} md={5}>
-                    <Card sx={{ p: 3, height: '100%', boxShadow: 2 }}>
-                        <Typography variant="h6" mb={2} color="#1E3A8A" fontWeight="bold">Key Findings</Typography>
+                    <Card sx={{ p: 3, height: '100%' }}>
+                        <Typography variant="h6" mb={2} color="#1e3a8a" fontWeight="bold">Key Findings</Typography>
                         <Divider sx={{ mb: 2 }} />
                         
                         {significantFindings.length > 0 ? (
@@ -164,7 +164,7 @@ export default function Results() {
 
             {/* Dialog for all rankings */}
             <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ fontWeight: 'bold', color: '#1E3A8A' }}>Complete Feature Analysis (15 Classes)</DialogTitle>
+                <DialogTitle sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>Complete Feature Analysis (15 Classes)</DialogTitle>
                 <DialogContent dividers>
                     <List disablePadding>
                         {sortedPredictions.map((pred, i) => (

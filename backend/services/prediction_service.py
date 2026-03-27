@@ -17,8 +17,8 @@ from ml.data.preprocessing import get_medical_transforms
 from ml.models.student_model import create_student_model, MODEL_CONFIGS
 
 DEFAULT_MODEL_ARCH = "efficientnet_b0_performer"
-DEFAULT_MODEL_NAME = "X-Lite model 001"
-DEFAULT_MODEL_PATH = Config.CHECKPOINT_DIR / "efficientnet_b0_performer_full_dataset_15class" / "best_checkpoint.pth"
+DEFAULT_MODEL_NAME = "X-Lite model patientwise best"
+DEFAULT_MODEL_PATH = Config.ROOT_DIR / "ml" / "models" / "new checkpoints" / "efficientnet_b0_performer_full_dataset_15class_patientwise_lol" / "best_checkpoint.pth"
 OPTIMAL_THRESHOLDS_PATH = Config.ROOT_DIR / "scripts" / "optimal_thresholds.json"
 
 

@@ -1,20 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Card, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, IconButton, CircularProgress } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, IconButton, CircularProgress } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 export default function History() {
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
     const baseUrl = apiUrl.replace('/api', '');
 
-    const fetchHistory = async () => {
+    const fetchHistory = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             const res = await axios.get(`${apiUrl}/history`, {
@@ -26,11 +23,11 @@ export default function History() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiUrl]);
 
     useEffect(() => {
         fetchHistory();
-    }, []);
+    }, [fetchHistory]);
 
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this record?")) return;
@@ -81,13 +78,13 @@ export default function History() {
 
     return (
         <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1E3A8A', mb: 3 }}>
+            <Typography variant="h4" sx={{ color: '#1e3a8a', mb: 3 }}>
                 Patient Analysis History
             </Typography>
 
             <TableContainer component={Paper} elevation={2}>
                 <Table sx={{ minWidth: 650 }}>
-                    <TableHead sx={{ bgcolor: '#f1f5f9' }}>
+                    <TableHead sx={{ bgcolor: '#eff6ff' }}>
                         <TableRow>
                             <TableCell sx={{ fontWeight: 'bold' }}>Date & Time</TableCell>
                             <TableCell sx={{ fontWeight: 'bold' }}>Image File</TableCell>

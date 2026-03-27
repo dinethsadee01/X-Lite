@@ -34,16 +34,16 @@ export default function Login() {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            bgcolor: '#f8fafc'
+            background: 'radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.20), rgba(244, 249, 255, 0.95) 45%), #f4f9ff'
         }}>
-            <Card sx={{ maxWidth: 400, width: '100%', p: 2, boxShadow: 3 }}>
+            <Card sx={{ maxWidth: 440, width: '100%', p: 2.5, boxShadow: '0 20px 45px rgba(29, 78, 216, 0.12)' }}>
                 <CardContent>
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-                        <MonitorHeartIcon sx={{ color: '#1E3A8A', fontSize: 48, mb: 1 }} />
-                        <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1E3A8A' }}>
+                        <MonitorHeartIcon sx={{ color: '#1d4ed8', fontSize: 52, mb: 1 }} />
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: '#1e3a8a' }}>
                             X-Lite Medical
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                             Radiological AI Analysis Portal
                         </Typography>
                     </Box>
@@ -78,7 +78,7 @@ export default function Login() {
                             disabled={loading}
                             sx={{
                                 mt: 3,
-                                bgcolor: '#1E3A8A',
+                                bgcolor: '#1d4ed8',
                                 '&:hover': { bgcolor: '#1e40af' },
                                 py: 1.5
                             }}
