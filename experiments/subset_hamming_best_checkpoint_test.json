@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-03-27T14:22:41.035113",
+  "checkpoint": "C:\\Users\\User\\Sadeepa\\X-Lite\\ml\\models\\new checkpoints\\efficientnet_b0_performer_full_dataset_15class_patientwise_lol\\best_checkpoint.pth",
+  "model_name": "efficientnet_b0_performer",
+  "split_csv": "C:\\Users\\User\\Sadeepa\\X-Lite\\data\\splits_old\\test_df.csv",
+  "split": "test",
+  "num_samples": 21845,
+  "threshold_mode": "classwise",
+  "threshold": null,
+  "thresholds": [
+    0.28200000524520874,
+    0.20100000500679016,
+    0.3140000104904175,
+    0.29499998688697815,
+    0.2809999883174896,
+    0.24899999797344208,
+    0.1809999942779541,
+    0.2809999883174896,
+    0.23899999260902405,
+    0.23100000619888306,
+    0.2669999897480011,
+    0.21699999272823334,
+    0.23600000143051147,
+    0.11599999666213989,
+    0.3779999911785126
+  ],
+  "metrics_15_classes": {
+    "subset_accuracy": 0.46376745250629436,
+    "hamming_loss": 0.07901426718547341
+  },
+  "metrics_14_pathologies_only": {
+    "subset_accuracy": 0.48674753948271915,
+    "hamming_loss": 0.0660268776771409
+  },
+  "no_finding_binary_accuracy": 0.7391622796978714
+}
