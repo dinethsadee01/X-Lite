@@ -177,8 +177,8 @@ def train_kd():
     print(f"  Device: {device}\n")
     
     # Load data
-    train_csv = KDConfig.DATA_DIR / 'splits' / 'train_df.csv'
-    val_csv = KDConfig.DATA_DIR / 'splits' / 'val_df.csv'
+    train_csv = KDConfig.DATA_DIR / 'splits_old' / 'train_df.csv'
+    val_csv = KDConfig.DATA_DIR / 'test_holdout_df.csv'
     clahe_cache = KDConfig.CLAHE_CACHE
     
     # Student preprocessing (standard with CLAHE)
