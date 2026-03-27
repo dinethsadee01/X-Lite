@@ -27,7 +27,7 @@ from config.disease_labels import DISEASE_LABELS
 
 # Configuration
 MODEL_NAME = 'efficientnet_b0_performer'
-CHECKPOINT_PATH = 'ml/models/checkpoints/efficientnet_b0_performer_full_dataset_15class/best_checkpoint.pth'
+CHECKPOINT_PATH = 'ml/models/new checkpoints/efficientnet_b0_performer_full_dataset_15class_patientwise_lol/best_checkpoint.pth'
 OPTIMAL_THRESHOLDS_PATH = 'scripts/optimal_thresholds.json'
 NUM_SAMPLES = 10
 DEFAULT_THRESHOLD = 0.5
@@ -53,12 +53,12 @@ def main():
             optimal_thresholds = json.load(f)
         print("Loaded optimal thresholds:")
         for disease, threshold in sorted(optimal_thresholds.items(), key=lambda x: x[1]):
-            print(f"  {disease:<25} {threshold:.2f}")
+            print(f"  {disease:<25} {threshold:.3f}")
         print()
     
     # Paths
     clahe_cache_dir = project_root / "data" / "clahe_cache"
-    test_csv = project_root / "data" / "splits" / "test.csv"
+    test_csv = project_root / "data" / "splits" / "test_df.csv"
     checkpoint_path = project_root / CHECKPOINT_PATH
     
     # Load test data
