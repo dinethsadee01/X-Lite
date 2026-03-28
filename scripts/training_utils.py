@@ -20,7 +20,7 @@ from config.disease_labels import DISEASE_LABELS
 project_root = Path(__file__).parent.parent
 
 
-def compute_pr_auc_scores(model, loader, device):
+def compute_pr_auc_scores(model, loader, device, disease_labels=None):
     """
     Compute PR-AUC (Precision-Recall AUC) for all classes
     
@@ -28,10 +28,14 @@ def compute_pr_auc_scores(model, loader, device):
         model: Trained model
         loader: DataLoader
         device: Device
+        disease_labels: List of disease label names (default: from config)
     
     Returns:
         dict: PR-AUC scores per class and macro average
     """
+    if disease_labels is None:
+        disease_labels = DISEASE_LABELS
+    
     model.eval()
     all_preds = []
     all_targets = []
@@ -49,7 +53,7 @@ def compute_pr_auc_scores(model, loader, device):
     targets = np.vstack(all_targets)
     
     pr_auc_scores = []
-    for i in range(len(DISEASE_LABELS)):
+    for i in range(len(disease_labels)):
         if targets[:, i].sum() > 0:  # Only if class has positives
             try:
                 precision, recall, _ = precision_recall_curve(targets[:, i], preds[:, i])
@@ -66,7 +70,7 @@ def compute_pr_auc_scores(model, loader, device):
     }
 
 
-def evaluate_final_metrics(model, loader, device):
+def evaluate_final_metrics(model, loader, device, disease_labels=None):
     """
     Compute comprehensive final metrics including PR-AUC, precision, recall
     
@@ -74,10 +78,14 @@ def evaluate_final_metrics(model, loader, device):
         model: Trained model
         loader: DataLoader  
         device: Device
+        disease_labels: List of disease label names (default: from config)
     
     Returns:
         dict: All metrics
     """
+    if disease_labels is None:
+        disease_labels = DISEASE_LABELS
+    
     model.eval()
     all_preds = []
     all_targets = []
@@ -95,10 +103,10 @@ def evaluate_final_metrics(model, loader, device):
     targets = torch.cat(all_targets, dim=0)
     
     # Compute standard metrics
-    metrics = compute_metrics(predictions, targets, threshold=0.5, disease_labels=DISEASE_LABELS)
+    metrics = compute_metrics(predictions, targets, threshold=0.5, disease_labels=disease_labels)
     
     # Compute PR-AUC
-    pr_auc_results = compute_pr_auc_scores(model, loader, device)
+    pr_auc_results = compute_pr_auc_scores(model, loader, device, disease_labels=disease_labels)
     metrics['PR_AUC_macro'] = pr_auc_results['pr_auc_macro']
     
     return metrics
