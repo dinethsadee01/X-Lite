@@ -8,13 +8,11 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 from pathlib import Path
-from bson import ObjectId
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import Config
 from backend.services.report_service import ReportService
-from backend.services.db_service import db
 from backend.routes.auth import get_current_user
 
 router = APIRouter()
@@ -26,8 +24,8 @@ class ReportRequest(BaseModel):
     patient_id: str = "Anonymous"
     predictions: List[Dict]
     image_filename: str
+    heatmap_path: Optional[str] = None
     additional_notes: str = ""
-    record_id: Optional[str] = None
 
 
 @router.post("/report/generate")
@@ -47,18 +45,9 @@ async def generate_report(request: ReportRequest, current_user: Optional[Dict[st
             patient_id=request.patient_id,
             predictions=request.predictions,
             image_filename=request.image_filename,
-            notes=request.additional_notes
+            notes=request.additional_notes,
+            heatmap_path=request.heatmap_path
         )
-        
-        # Save report path to the specific history record if needed
-        if current_user and request.record_id:
-            try:
-                await db.db.predictions.update_one(
-                    {"_id": ObjectId(request.record_id), "user_id": str(current_user["_id"])},
-                    {"$set": {"pdf_report_path": f"/static/reports/{report_path.name}"}}
-                )
-            except Exception as e:
-                print(f"Failed to update record with pdf path: {e}")
 
         return {
             "success": True,

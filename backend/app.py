@@ -3,9 +3,8 @@ Main FastAPI Application
 Chest X-ray Multi-Label Classification API
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 from pathlib import Path
@@ -15,9 +14,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import Config
-from backend.routes import predict, upload, health, report, auth, history
-from backend.services.db_service import connect_to_mongo, close_mongo_connection
-from backend.routes.auth import init_default_user
+from backend.routes import predict, upload, health, report, auth
 
 # Create FastAPI app
 app = FastAPI(
@@ -43,7 +40,6 @@ app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(predict.router, prefix="/api", tags=["prediction"])
 app.include_router(report.router, prefix="/api", tags=["report"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(history.router, prefix="/api/history", tags=["history"])
 
 # Serve static files (uploaded images, reports)
 app.mount("/static", StaticFiles(directory=str(Config.UPLOAD_FOLDER)), name="static")
@@ -52,17 +48,13 @@ app.mount("/static", StaticFiles(directory=str(Config.UPLOAD_FOLDER)), name="sta
 @app.on_event("startup")
 async def startup_event():
     """Initialize app on startup"""
-    # Create necessary directories
     Config.create_directories()
-    
-    # Connect to MongoDB
-    # connect_to_mongo()
+    print("✓ X-Lite API started")
 
-    # Seed default user
-    # await init_default_user()
+
+@app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    # close_mongo_connection()
     print("✓ X-Lite API shutdown")
 
 

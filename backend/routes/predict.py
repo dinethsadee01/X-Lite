@@ -3,16 +3,15 @@ Prediction Endpoint
 Handles inference requests for chest X-ray classification
 """
 
-from fastapi import APIRouter, HTTPException, File, UploadFile, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from config import Config, DISEASE_LABELS, get_risk_level, get_risk_color
+from config import Config, get_risk_level, get_risk_color
 from backend.services.prediction_service import PredictionService
-from backend.services.db_service import db, PredictionRecord
 from backend.routes.auth import get_current_user
 
 router = APIRouter()
@@ -43,6 +42,7 @@ class PredictionResult(BaseModel):
     risk_level: str
     color: str
     description: Optional[str] = None
+    threshold: Optional[float] = None
 
 
 class PredictionResponse(BaseModel):
@@ -51,10 +51,12 @@ class PredictionResponse(BaseModel):
     predictions: List[PredictionResult]
     positive_findings: List[str]
     num_positive: int
+    overall_assessment: Optional[str] = None
     heatmap_path: Optional[str] = None
+    heatmap_target_disease: Optional[str] = None
     processing_time_ms: float
     model_name: str
-    record_id: Optional[str] = None
+    num_classes: Optional[int] = None
 
 
 @router.post("/predict", response_model=PredictionResponse)
@@ -84,22 +86,7 @@ async def predict(request: PredictionRequest, current_user: Optional[Dict[str, A
             return_heatmap=request.return_heatmap,
             threshold=request.confidence_threshold
         )
-        
-        # Save to DB if authenticated
-        if current_user:
-            try:
-                record = PredictionRecord(
-                    user_id=str(current_user["_id"]),
-                    filename=request.filename,
-                    original_image_path=f"/static/{request.filename}",
-                    heatmap_image_path=f"/static/{result.get('heatmap_path')}" if result.get('heatmap_path') else None,
-                    predictions=result.get("predictions", [])
-                )
-                inserted = await db.db.predictions.insert_one(record.dict(by_alias=True))
-                # Add record id to frontend can fetch PDF update later (optional)
-                result["record_id"] = str(inserted.inserted_id)
-            except Exception as dbe:
-                print(f"Warning: Could not save prediction to DB: {dbe}")
+
         return result
     
     except HTTPException:
