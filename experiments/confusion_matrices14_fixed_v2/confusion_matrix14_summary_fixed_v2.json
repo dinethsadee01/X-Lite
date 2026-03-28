@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-03-28T13:17:40.930436",
+  "setup": "14_class_without_no_finding",
+  "checkpoint": "C:\\Users\\User\\Sadeepa\\X-Lite\\ml\\models\\new checkpoints fix\\efficientnet_b0_performer_full_dataset_14class_v2\\best_checkpoint.pth",
+  "split_csv": "C:\\Users\\User\\Sadeepa\\X-Lite\\data\\splits\\test_df.csv",
+  "clahe_cache": "C:\\Users\\User\\Sadeepa\\X-Lite\\data\\clahe_cache",
+  "thresholds": {
+    "Atelectasis": 0.5580000281333923,
+    "Cardiomegaly": 0.6499999761581421,
+    "Effusion": 0.6010000109672546,
+    "Infiltration": 0.5120000243186951,
+    "Mass": 0.6179999709129333,
+    "Nodule": 0.5920000076293945,
+    "Pneumonia": 0.5799999833106995,
+    "Pneumothorax": 0.6679999828338623,
+    "Consolidation": 0.5789999961853027,
+    "Edema": 0.6420000195503235,
+    "Emphysema": 0.6079999804496765,
+    "Fibrosis": 0.5979999899864197,
+    "Pleural_Thickening": 0.5860000252723694,
+    "Hernia": 0.6600000262260437
+  },
+  "thresholds_source": "C:\\Users\\User\\Sadeepa\\X-Lite\\scripts\\optimal_thresholds14_fixed_v2.json",
+  "num_samples": 21845,
+  "macro_precision_from_cm": 0.2898215832505823,
+  "macro_recall_from_cm": 0.4669811869242298,
+  "macro_f1_from_cm": 0.346513437189609,
+  "macro_accuracy_from_cm": 0.9101952064872642,
+  "outputs": {
+    "combined_plot": "C:\\Users\\User\\Sadeepa\\X-Lite\\experiments\\confusion_matrices14_fixed_v2\\confusion_matrices14_grid_fixed_v2.png",
+    "per_class_dir": "C:\\Users\\User\\Sadeepa\\X-Lite\\experiments\\confusion_matrices14_fixed_v2\\per_class",
+    "summary_csv": "C:\\Users\\User\\Sadeepa\\X-Lite\\experiments\\confusion_matrices14_fixed_v2\\confusion_matrix14_summary_fixed_v2.csv"
+  }
+}

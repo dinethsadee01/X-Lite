@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-03-28T13:14:52.067222",
+  "setup": "14_class_without_no_finding",
+  "checkpoint": "C:\\Users\\User\\Sadeepa\\X-Lite\\ml\\models\\new checkpoints fix\\efficientnet_b0_performer_full_dataset_14class_v2\\best_checkpoint.pth",
+  "split_csv": "C:\\Users\\User\\Sadeepa\\X-Lite\\data\\splits\\test_df.csv",
+  "num_samples": 21845,
+  "thresholds": {
+    "Atelectasis": 0.5579999999999995,
+    "Cardiomegaly": 0.6499999999999995,
+    "Effusion": 0.6009999999999995,
+    "Infiltration": 0.5119999999999996,
+    "Mass": 0.6179999999999994,
+    "Nodule": 0.5919999999999995,
+    "Pneumonia": 0.5799999999999995,
+    "Pneumothorax": 0.6679999999999995,
+    "Consolidation": 0.5789999999999995,
+    "Edema": 0.6419999999999995,
+    "Emphysema": 0.6079999999999995,
+    "Fibrosis": 0.5979999999999995,
+    "Pleural_Thickening": 0.5859999999999995,
+    "Hernia": 0.6599999999999995
+  },
+  "subset_accuracy": 0.40485236896314947,
+  "hamming_loss": 0.08980479351273583,
+  "per_class_accuracy": [
+    {
+      "class": "Atelectasis",
+      "accuracy": 0.7886472877088578,
+      "threshold": 0.5580000281333923
+    },
+    {
+      "class": "Cardiomegaly",
+      "accuracy": 0.9631494621194782,
+      "threshold": 0.6499999761581421
+    },
+    {
+      "class": "Effusion",
+      "accuracy": 0.8796978713664454,
+      "threshold": 0.6010000109672546
+    },
+    {
+      "class": "Infiltration",
+      "accuracy": 0.7391165026321813,
+      "threshold": 0.5120000243186951
+    },
+    {
+      "class": "Mass",
+      "accuracy": 0.9279926756694896,
+      "threshold": 0.6179999709129333
+    },
+    {
+      "class": "Nodule",
+      "accuracy": 0.9105516136415656,
+      "threshold": 0.5920000076293945
+    },
+    {
+      "class": "Pneumonia",
+      "accuracy": 0.9566033417257954,
+      "threshold": 0.5799999833106995
+    },
+    {
+      "class": "Pneumothorax",
+      "accuracy": 0.9477683680476081,
+      "threshold": 0.6679999828338623
+    },
+    {
+      "class": "Consolidation",
+      "accuracy": 0.8286564431219959,
+      "threshold": 0.5789999961853027
+    },
+    {
+      "class": "Edema",
+      "accuracy": 0.9631952391851683,
+      "threshold": 0.6420000195503235
+    },
+    {
+      "class": "Emphysema",
+      "accuracy": 0.9747310597390707,
+      "threshold": 0.6079999804496765
+    },
+    {
+      "class": "Fibrosis",
+      "accuracy": 0.9571526665140765,
+      "threshold": 0.5979999899864197
+    },
+    {
+      "class": "Pleural_Thickening",
+      "accuracy": 0.9070267795834287,
+      "threshold": 0.5860000252723694
+    },
+    {
+      "class": "Hernia",
+      "accuracy": 0.998443579766537,
+      "threshold": 0.6600000262260437
+    }
+  ]
+}
