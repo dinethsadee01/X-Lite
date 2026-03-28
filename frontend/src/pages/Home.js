@@ -8,7 +8,7 @@ export default function Home() {
     const navigate = useNavigate();
 
     return (
-        <Box sx={{ maxWidth: 1200, mx: 'auto', pt: { xs: 14, md: 18 }, px: 3 }}>
+        <Box sx={{ maxWidth: 1200, mx: 'auto', pt: { xs: 2, md: 4 }, px: 3 }}>
             <Card
                 sx={{
                     p: { xs: 3, md: 5 },

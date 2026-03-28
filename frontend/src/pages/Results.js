@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Typography, Card, Grid, Button, Divider, Alert, CircularProgress, Chip, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText } from '@mui/material';
+import { Box, Typography, Card, Grid, Button, Divider, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import axios from 'axios';
 
-const RiskChip = ({ risk }) => {
-    let color = 'default';
-    if (risk === 'High') color = 'error';
-    if (risk === 'Medium') color = 'warning';
-    if (risk === 'Low') color = 'success';
-    
-    return <Chip label={`${risk} Risk`} color={color} size="small" />;
-};
+
 
 export default function Results() {
     const location = useLocation();
@@ -34,11 +27,12 @@ export default function Results() {
         );
     }
 
-    const { originalImage, predictions, heatmap_path, record_id, uploadedFilename } = resultData;
+    const { originalImage, predictions, heatmap_path, heatmap_target_disease, uploadedFilename, overall_assessment } = resultData;
     
     // Sort predictions: highest prob first
     const sortedPredictions = [...predictions].sort((a,b) => b.probability - a.probability);
-    const significantFindings = sortedPredictions.filter(p => p.probability >= 0.5); // Or whatever threshold
+    // Use per-class optimized thresholds from the API response
+    const significantFindings = sortedPredictions.filter(p => p.probability >= (p.threshold || 0.5));
 
     const handleDownloadReport = async () => {
         setDownloading(true);
@@ -49,7 +43,7 @@ export default function Results() {
                 patient_id: "Internal-System-User",
                 predictions: predictions,
                 image_filename: uploadedFilename,
-                record_id: record_id || null,
+                heatmap_path: heatmap_path,
                 additional_notes: "Auto-generated report from web portal."
             };
             
@@ -113,7 +107,7 @@ export default function Results() {
                                 <img src={originalImage} alt="Original X-Ray" style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
                             </Grid>
                             <Grid item xs={6}>
-                                <Typography variant="subtitle2" align="center" mb={1}>Grad-CAM Overlay</Typography>
+                                <Typography variant="subtitle2" align="center" mb={1}>Grad-CAM Overlay{heatmap_target_disease ? ` (${heatmap_target_disease.replace('_', ' ')})` : ''}</Typography>
                                 {heatmap_path ? (
                                     <img src={`${baseUrl}${heatmap_path}`} alt="Heatmap" style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
                                 ) : (
@@ -136,16 +130,16 @@ export default function Results() {
                             <List disablePadding>
                                 {significantFindings.map((finding, idx) => (
                                     <ListItem key={idx} sx={{ px: 0, py: 1.5, borderBottom: '1px solid #f1f5f9' }}>
+                                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ef4444', mr: 1.5, flexShrink: 0 }} />
                                         <ListItemText 
                                             primary={<Typography variant="subtitle1" fontWeight="bold">{finding.disease.replace('_', ' ')}</Typography>}
                                             secondary={`Confidence: ${(finding.probability * 100).toFixed(1)}%`}
                                         />
-                                        <RiskChip risk={finding.risk_level.charAt(0).toUpperCase() + finding.risk_level.slice(1)} />
                                     </ListItem>
                                 ))}
                             </List>
                         ) : (
-                            <Alert severity="success" sx={{ mb: 3 }}>No significant findings detected. (All confidence levels &lt; 50%)</Alert>
+                            <Alert severity="success" sx={{ mb: 3 }}>{overall_assessment || 'No significant findings detected.'}</Alert>
                         )}
                         
                         <Box mt={3} pt={2} borderTop="1px solid #e2e8f0">
@@ -164,16 +158,15 @@ export default function Results() {
 
             {/* Dialog for all rankings */}
             <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>Complete Feature Analysis (15 Classes)</DialogTitle>
+                <DialogTitle sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>Complete Feature Analysis (14 Disease Classes)</DialogTitle>
                 <DialogContent dividers>
                     <List disablePadding>
                         {sortedPredictions.map((pred, i) => (
                             <ListItem key={i} sx={{ borderBottom: '1px solid #f1f5f9' }}>
                                 <ListItemText 
                                     primary={pred.disease.replace('_', ' ')}
-                                    secondary={`${(pred.probability * 100).toFixed(2)}% chance`}
+                                    secondary={`${(pred.probability * 100).toFixed(2)}%`}
                                 />
-                                <RiskChip risk={pred.risk_level.charAt(0).toUpperCase() + pred.risk_level.slice(1)} />
                             </ListItem>
                         ))}
                     </List>

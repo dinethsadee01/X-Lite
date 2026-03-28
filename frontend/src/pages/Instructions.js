@@ -18,15 +18,11 @@ const steps = [
         title: '4. Download Clinical PDF',
         text: 'Use the Download Clinical PDF button to export a structured report for sharing or archive.',
     },
-    {
-        title: '5. Re-check History',
-        text: 'From History, review previously analyzed sessions (or placeholder data in demo mode).',
-    },
 ];
 
 export default function Instructions() {
     return (
-        <Box sx={{ maxWidth: 1000, mx: 'auto', pt: { xs: 14, md: 17 }, px: 3 }}>
+        <Box sx={{ maxWidth: 1000, mx: 'auto', pt: { xs: 2, md: 4 }, px: 3 }}>
             <Typography variant="h4" sx={{ color: '#1e3a8a', mb: 1.2 }}>
                 Usage Instructions
             </Typography>

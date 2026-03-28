@@ -84,7 +84,7 @@ export default function Dashboard() {
                 Clinical X-Ray Analysis
             </Typography>
             <Typography variant="body1" color="text.secondary" mb={4}>
-                Upload a chest radiograph to run our 15-class inference engine.
+                Upload a chest radiograph to run our 14-class disease detection engine.
             </Typography>
 
             <Paper 

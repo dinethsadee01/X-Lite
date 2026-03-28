@@ -10,7 +10,6 @@ import Home from './pages/Home';
 import Instructions from './pages/Instructions';
 import Dashboard from './pages/Dashboard';
 import Results from './pages/Results';
-import History from './pages/History';
 import './App.css';
 
 const theme = createTheme({
@@ -89,7 +88,7 @@ function MainLayout({ children }) {
     return (
         <Box className="app-shell">
             <Header />
-            <main style={{ paddingTop: 14 }}>{children}</main>
+            <main style={{ paddingTop: 100 }}>{children}</main>
         </Box>
     );
 }
@@ -136,13 +135,7 @@ function App() {
                             </ProtectedRoute>
                         } />
                         
-                        <Route path="/history" element={
-                            <ProtectedRoute>
-                                <MainLayout>
-                                    <History />
-                                </MainLayout>
-                            </ProtectedRoute>
-                        } />
+
 
                         {/* Catch all */}
                         <Route path="*" element={<Navigate to="/" replace />} />

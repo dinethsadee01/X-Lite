@@ -18,7 +18,6 @@ export default function Header() {
         { label: 'Home', path: '/' },
         { label: 'Upload', path: '/upload' },
         { label: 'Instructions', path: '/instructions' },
-        { label: 'History', path: '/history' },
     ];
 
     return (
