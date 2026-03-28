@@ -95,9 +95,9 @@ class ModelTrainer:
         else:
             self.scaler = None
         
-        # Metric trackers
-        self.train_metrics = MetricsTracker(num_classes, DISEASE_LABELS)
-        self.val_metrics = MetricsTracker(num_classes, DISEASE_LABELS)
+        # Metric trackers (use only first num_classes labels to match model output)
+        self.train_metrics = MetricsTracker(num_classes, DISEASE_LABELS[:num_classes])
+        self.val_metrics = MetricsTracker(num_classes, DISEASE_LABELS[:num_classes])
         
         # Training history
         self.history = {

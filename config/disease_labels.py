@@ -18,8 +18,7 @@ DISEASE_LABELS = [
     'Emphysema',
     'Fibrosis',
     'Pleural_Thickening',
-    'Hernia',
-    'No_Finding'  # Added as 15th class to fix overprediction issue
+    'Hernia'  # Added as 15th class to fix overprediction issue
 ]
 
 NUM_CLASSES = len(DISEASE_LABELS)

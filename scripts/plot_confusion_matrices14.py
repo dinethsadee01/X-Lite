@@ -30,14 +30,15 @@ from ml.data.preprocessing import get_medical_transforms
 from ml.models.student_model import create_student_model
 
 # Fixed configuration
-CHECKPOINT_PATH = project_root / "ml/models/new checkpoints 14/efficientnet_b0_performer_full_dataset_14class_patientwise_lol/best_checkpoint.pth"
+CHECKPOINT_PATH = project_root / "ml/models/new checkpoints fix/efficientnet_b0_performer_full_dataset_14class_v2/best_checkpoint.pth"
 SPLIT_CSV_PATH = project_root / "data/splits/test_df.csv"
 CLAHE_CACHE_DIR = project_root / "data/clahe_cache"
 MODEL_NAME = "efficientnet_b0_performer"
 BATCH_SIZE = 64
 NUM_WORKERS = 4
-THRESHOLD = 0.5
-OUTPUT_DIR = project_root / "experiments/confusion_matrices14"
+THRESHOLDS_PATH = project_root / "scripts/optimal_thresholds14_fixed_v2.json"
+DEFAULT_THRESHOLD = 0.5
+OUTPUT_DIR = project_root / "experiments/confusion_matrices14_fixed_v2"
 
 
 def prepare_dataframe(csv_path: Path) -> pd.DataFrame:
@@ -201,6 +202,25 @@ def save_combined_grid_plot(mcm: np.ndarray, out_path: Path):
     plt.close(fig)
 
 
+def load_classwise_thresholds(path: Path) -> np.ndarray:
+    """Load per-class thresholds from JSON, fallback to DEFAULT_THRESHOLD."""
+    if path.exists():
+        with open(path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        thresholds = np.array(
+            [float(payload.get(label, DEFAULT_THRESHOLD)) for label in DISEASE_LABELS14],
+            dtype=np.float32,
+        )
+        print(f"Loaded per-class thresholds from: {path}")
+        for i, label in enumerate(DISEASE_LABELS14):
+            print(f"  {label:<25} {thresholds[i]:.3f}")
+        return thresholds
+    else:
+        print(f"Threshold file not found: {path}")
+        print(f"Using default threshold: {DEFAULT_THRESHOLD}")
+        return np.full(len(DISEASE_LABELS14), DEFAULT_THRESHOLD, dtype=np.float32)
+
+
 def main():
     if not CHECKPOINT_PATH.exists():
         raise FileNotFoundError(f"Checkpoint not found: {CHECKPOINT_PATH}")
@@ -226,7 +246,10 @@ def main():
 
     model = load_model(device)
     y_true, y_prob = run_inference(model, loader, device)
-    y_pred = (y_prob >= THRESHOLD).astype(np.int32)
+
+    # Load per-class optimized thresholds
+    thresholds = load_classwise_thresholds(THRESHOLDS_PATH)
+    y_pred = (y_prob >= thresholds[None, :]).astype(np.int32)
 
     mcm = multilabel_confusion_matrix(y_true, y_pred)
     summary_df = summarize_confusions(mcm)
@@ -237,20 +260,21 @@ def main():
     for i, class_name in enumerate(DISEASE_LABELS14):
         save_single_cm_plot(mcm[i], class_name, per_class_dir / f"cm14_{i:02d}_{class_name}.png")
 
-    combined_path = OUTPUT_DIR / "confusion_matrices14_grid.png"
+    combined_path = OUTPUT_DIR / "confusion_matrices14_grid_fixed_v2.png"
     save_combined_grid_plot(mcm, combined_path)
 
-    summary_csv = OUTPUT_DIR / "confusion_matrix14_summary.csv"
+    summary_csv = OUTPUT_DIR / "confusion_matrix14_summary_fixed_v2.csv"
     summary_df.to_csv(summary_csv, index=False)
 
-    summary_json = OUTPUT_DIR / "confusion_matrix14_summary.json"
+    summary_json = OUTPUT_DIR / "confusion_matrix14_summary_fixed_v2.json"
     summary_payload = {
         "timestamp": datetime.now().isoformat(),
         "setup": "14_class_without_no_finding",
         "checkpoint": str(CHECKPOINT_PATH),
         "split_csv": str(SPLIT_CSV_PATH),
         "clahe_cache": str(CLAHE_CACHE_DIR),
-        "threshold": THRESHOLD,
+        "thresholds": {DISEASE_LABELS14[i]: float(thresholds[i]) for i in range(len(DISEASE_LABELS14))},
+        "thresholds_source": str(THRESHOLDS_PATH),
         "num_samples": int(y_true.shape[0]),
         "macro_precision_from_cm": float(summary_df["precision"].mean()),
         "macro_recall_from_cm": float(summary_df["recall"].mean()),

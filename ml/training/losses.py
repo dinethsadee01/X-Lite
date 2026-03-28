@@ -45,11 +45,15 @@ class FocalLoss(nn.Module):
     Focal Loss for addressing class imbalance
     Reduces loss for well-classified examples, focuses on hard examples
     
-    FL(p_t) = -α(1 - p_t)^γ * log(p_t)
+    FL(p_t) = -α_t(1 - p_t)^γ * log(p_t)
     
     Args:
-        alpha (float or torch.Tensor): Weighting factor (0-1). Can be per-class.
-        gamma (float): Focusing parameter (typically 2.0)
+        alpha (float, torch.Tensor, or None): Weighting factor for the positive class.
+            - float: Same alpha for all classes (e.g., 0.25)
+            - torch.Tensor of shape [num_classes]: Per-class alpha (recommended for imbalanced data)
+              Rare classes should have alpha close to 1.0, common classes closer to 0.5.
+            - None: No alpha weighting
+        gamma (float): Focusing parameter (typically 2.0). Higher = more focus on hard examples.
         reduction (str): 'mean', 'sum', or 'none'
     
     Reference: https://arxiv.org/abs/1708.02002
@@ -57,14 +61,24 @@ class FocalLoss(nn.Module):
     
     def __init__(
         self, 
-        alpha: float = 0.25, 
+        alpha = 0.25, 
         gamma: float = 2.0,
         reduction: str = 'mean'
     ):
         super().__init__()
-        self.alpha = alpha
+        if isinstance(alpha, (list, tuple)):
+            alpha = torch.tensor(alpha, dtype=torch.float32)
+        self.register_buffer('_alpha', alpha if isinstance(alpha, torch.Tensor) else None)
+        self._alpha_scalar = alpha if not isinstance(alpha, torch.Tensor) else None
         self.gamma = gamma
         self.reduction = reduction
+    
+    @property
+    def alpha(self):
+        """Return alpha (tensor buffer or scalar)."""
+        if self._alpha is not None:
+            return self._alpha
+        return self._alpha_scalar
     
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
@@ -92,9 +106,20 @@ class FocalLoss(nn.Module):
         focal_loss = focal_term * bce_loss
         
         # Apply alpha weighting
-        if self.alpha is not None:
-            alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
+        alpha = self.alpha
+        if alpha is not None:
+            if isinstance(alpha, torch.Tensor):
+                # Per-class alpha: shape [num_classes] -> broadcast to [batch, num_classes]
+                # alpha_t = alpha for positive class, (1-alpha) for negative class
+                alpha = alpha.to(logits.device)
+                alpha_t = alpha.unsqueeze(0) * targets + (1.0 - alpha.unsqueeze(0)) * (1 - targets)
+            else:
+                # Scalar alpha
+                alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
             focal_loss = alpha_t * focal_loss
+        
+        # Clamp to prevent float16 overflow with AMP
+        focal_loss = torch.clamp(focal_loss, max=100.0)
         
         # Reduction
         if self.reduction == 'mean':
@@ -210,6 +235,41 @@ def calculate_effective_num_samples(
     effective_num = effective_num / (1.0 - beta)
     
     return effective_num
+
+
+def compute_focal_alpha_per_class(
+    label_counts: torch.Tensor,
+    total_samples: int,
+    min_alpha: float = 0.5,
+    max_alpha: float = 0.99
+) -> torch.Tensor:
+    """
+    Compute per-class alpha weights for Focal Loss based on class frequency.
+    
+    Rare classes get alpha close to max_alpha (high weight on positives).
+    Common classes get alpha close to min_alpha (balanced weight).
+    
+    Formula: alpha_i = 1 - (count_i / total_samples)
+    Then clamped to [min_alpha, max_alpha].
+    
+    Args:
+        label_counts (torch.Tensor): Number of positive samples per class [num_classes]
+        total_samples (int): Total number of samples in dataset
+        min_alpha (float): Minimum alpha (for most common class)
+        max_alpha (float): Maximum alpha (for rarest class)
+    
+    Returns:
+        torch.Tensor: Per-class alpha values [num_classes]
+    
+    Example:
+        >>> counts = torch.tensor([50000, 5000, 500, 50])  # Very imbalanced
+        >>> alpha = compute_focal_alpha_per_class(counts, 100000)
+        >>> # Result: ~[0.50, 0.95, 0.99, 0.99]  (rare classes get high alpha)
+    """
+    freq = label_counts.float() / total_samples
+    alpha = 1.0 - freq  # Rare classes → alpha near 1.0
+    alpha = torch.clamp(alpha, min=min_alpha, max=max_alpha)
+    return alpha
 
 
 def get_class_balanced_weights(

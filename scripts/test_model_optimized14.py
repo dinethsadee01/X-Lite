@@ -42,8 +42,8 @@ from config.disease_labels14 import DISEASE_LABELS14, NUM_CLASSES14
 
 # Configuration
 MODEL_NAME = 'efficientnet_b0_performer'
-CHECKPOINT_PATH = 'ml/models/new checkpoints 14/efficientnet_b0_performer_full_dataset_14class_patientwise_lol/best_checkpoint.pth'
-THRESHOLDS_14_PATH = 'scripts/optimal_thresholds14.json'
+CHECKPOINT_PATH = 'ml/models/new checkpoints fix/efficientnet_b0_performer_full_dataset_14class_v2/best_checkpoint.pth'
+THRESHOLDS_14_PATH = 'scripts/optimal_thresholds14_fixed_v2.json'
 THRESHOLDS_15_PATH = 'scripts/optimal_thresholds.json'
 BATCH_SIZE = 32
 
@@ -279,7 +279,7 @@ def main():
         'recall_optimal': float(rec_macro_optimal),
     }
 
-    results_path = project_root / 'experiments' / 'test_results_14class_optimized_lol.json'
+    results_path = project_root / 'experiments' / 'test_results_14class_v2.json'
     print(f'\n\nSaving results to: {results_path}')
     with open(results_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2)

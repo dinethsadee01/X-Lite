@@ -37,10 +37,12 @@ from config.disease_labels import DISEASE_LABELS
 
 # Configuration
 MODEL_NAME = 'efficientnet_b0_performer'
-CHECKPOINT_PATH = 'ml/models/new checkpoints/efficientnet_b0_performer_full_dataset_15class_patientwise_lol/best_checkpoint.pth'
-NUM_CLASSES = 15
+CHECKPOINT_PATH = 'ml/models/new checkpoints fix/efficientnet_b0_performer_full_dataset_14class_v2/best_checkpoint.pth'
+NUM_CLASSES = 14
 THRESHOLD_RANGE = np.arange(0.01, 1.0, 0.001)  # Test thresholds from 0.01 to 0.95 in 0.001 steps
-OUTPUT_PATH = project_root / 'scripts' / 'optimal_thresholds.json'
+OUTPUT_PATH = project_root / 'scripts' / 'optimal_thresholds14_fixed_v2.json'
+# IMPORTANT: Thresholds must be optimized on VALIDATION set (not test) to avoid data leakage
+VAL_CSV = "data/splits/val_df.csv"
 
 
 def main():
@@ -58,7 +60,7 @@ def main():
     
     # Paths
     clahe_cache_dir = project_root / "data" / "clahe_cache"
-    val_csv = project_root / "data" / "splits" / "val_df.csv"
+    val_csv = project_root / VAL_CSV
     checkpoint_path = project_root / CHECKPOINT_PATH
     
     # Load validation data

@@ -27,8 +27,8 @@ from config.disease_labels import DISEASE_LABELS
 
 # Configuration
 MODEL_NAME = 'efficientnet_b0_performer'
-CHECKPOINT_PATH = 'ml/models/new checkpoints/efficientnet_b0_performer_full_dataset_15class_patientwise_lol/best_checkpoint.pth'
-OPTIMAL_THRESHOLDS_PATH = 'scripts/optimal_thresholds.json'
+CHECKPOINT_PATH = 'ml/models/new checkpoints fix/efficientnet_b0_performer_full_dataset_14class_v2/best_checkpoint.pth'
+OPTIMAL_THRESHOLDS_PATH = 'scripts/optimal_thresholds14_fixed_v2.json'
 NUM_SAMPLES = 10
 DEFAULT_THRESHOLD = 0.5
 USE_OPTIMAL_THRESHOLDS = True  # Set to False to use fixed 0.5 threshold
@@ -144,7 +144,7 @@ def main():
             print(f"PREDICTED: {predicted_str}")
             
             # Show all probabilities (sorted by confidence, excluding No_Finding)
-            prob_list = [(DISEASE_LABELS[i], probs[i]) for i in range(14)]  # First 14 classes only
+            prob_list = [(DISEASE_LABELS[i], probs[i]) for i in range(13)]  # First 14 classes only
             prob_list.sort(key=lambda x: x[1], reverse=True)
             
             print(f"\nDisease Probabilities (top 5):")
@@ -161,8 +161,8 @@ def main():
                 print(f"  [{marker}] {disease:<25} {prob:.4f} {pred_marker}")
             
             # Show No_Finding probability separately
-            no_finding_prob = probs[14]
-            no_finding_actual = target[14] == 1
+            no_finding_prob = probs[13]
+            no_finding_actual = target[13] == 1
             marker = "✓" if no_finding_actual else " "
             
             if USE_OPTIMAL_THRESHOLDS and optimal_thresholds:

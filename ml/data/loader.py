@@ -30,6 +30,8 @@ class ChestXrayDataset(Dataset):
         labels_df (pd.DataFrame): DataFrame with columns ['image_id', 'labels']
         transform (callable, optional): Image transformations
         is_training (bool): Whether this is training data (affects augmentation)
+        num_classes (int, optional): Number of output classes (default: from config)
+        disease_labels (list, optional): List of disease label names (default: from config)
     """
     
     def __init__(
@@ -37,18 +39,23 @@ class ChestXrayDataset(Dataset):
         data_dir: str,
         labels_df: pd.DataFrame,
         transform=None,
-        is_training: bool = True
+        is_training: bool = True,
+        num_classes: int = None,
+        disease_labels: list = None
     ):
         self.data_dir = Path(data_dir)
         self.labels_df = labels_df.reset_index(drop=True)
         self.transform = transform
         self.is_training = is_training
+        # Store on instance so DataLoader workers (separate processes) see the right values
+        self._num_classes = num_classes if num_classes is not None else NUM_CLASSES
+        self._disease_labels = disease_labels if disease_labels is not None else DISEASE_LABELS
         
         # Verify data exists
         if not self.data_dir.exists():
             raise ValueError(f"Data directory does not exist: {self.data_dir}")
         
-        print(f"Loaded {len(self.labels_df)} images")
+        print(f"Loaded {len(self.labels_df)} images ({self._num_classes} classes)")
     
     def __len__(self) -> int:
         return len(self.labels_df)
@@ -57,7 +64,7 @@ class ChestXrayDataset(Dataset):
         """
         Returns:
             image (torch.Tensor): Preprocessed image tensor
-            label (torch.Tensor): Multi-label binary vector (15 classes: 14 diseases + No_Finding)
+            label (torch.Tensor): Multi-label binary vector
             image_id (str): Image filename for reference
         """
         row = self.labels_df.iloc[idx]
@@ -96,23 +103,26 @@ class ChestXrayDataset(Dataset):
             label_str (str): Pipe-separated labels (e.g., "Atelectasis|Effusion" or "No Finding")
         
         Returns:
-            torch.Tensor: Binary vector of shape (NUM_CLASSES,) = 15 classes
-                         Classes 0-13: 14 diseases
-                         Class 14: No_Finding
+            torch.Tensor: Binary vector of shape (num_classes,)
+                         Supports both 14-class (diseases only) and 15-class (diseases + No_Finding)
         """
-        label_vector = torch.zeros(NUM_CLASSES, dtype=torch.float32)
+        label_vector = torch.zeros(self._num_classes, dtype=torch.float32)
         
-        # Handle "No Finding" as explicit 15th class
+        # Handle "No Finding"
         if pd.isna(label_str) or label_str == 'No Finding':
-            label_vector[14] = 1.0  # Set No_Finding class (index 14) to 1
+            # If No_Finding is an explicit class (15-class mode), set it
+            if 'No_Finding' in self._disease_labels:
+                idx = self._disease_labels.index('No_Finding')
+                label_vector[idx] = 1.0
+            # Otherwise (14-class mode), return all-zeros (no disease present)
             return label_vector
         
-        # Split labels and encode diseases (indices 0-13)
+        # Split labels and encode diseases
         labels = label_str.split('|')
         for label in labels:
             label = label.strip()
-            if label in DISEASE_LABELS:
-                idx = DISEASE_LABELS.index(label)
+            if label in self._disease_labels:
+                idx = self._disease_labels.index(label)
                 label_vector[idx] = 1.0
         
         return label_vector

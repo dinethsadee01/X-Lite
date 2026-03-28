@@ -84,6 +84,44 @@ def get_augmentation_pipeline(
                 A.ElasticTransform(p=1.0),
             ], p=0.2),
         ]
+    elif augmentation_strength == 'medical':
+        # Medical imaging augmentation: strong but anatomically plausible
+        # Designed for severely imbalanced chest X-ray datasets
+        aug_transforms = [
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.1),  # Rare but helps robustness
+            A.RandomRotate90(p=0.2),  # 90° rotations for orientation invariance
+            A.Rotate(limit=20, p=0.5, border_mode=0),
+            A.Affine(
+                translate_percent={'x': (-0.1, 0.1), 'y': (-0.1, 0.1)},
+                scale=(0.85, 1.15),
+                rotate=(-20, 20),
+                p=0.4
+            ),
+            A.OneOf([
+                A.GaussNoise(p=1.0),
+                A.GaussianBlur(blur_limit=5, p=1.0),
+                A.MotionBlur(blur_limit=5, p=1.0),
+            ], p=0.3),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.3,
+                contrast_limit=0.3,
+                p=0.4
+            ),
+            A.OneOf([
+                A.GridDistortion(num_steps=5, distort_limit=0.3, p=1.0),
+                A.ElasticTransform(alpha=1, sigma=50, p=1.0),
+            ], p=0.25),
+            A.OneOf([
+                A.Equalize(p=1.0),  # Not CLAHE — already precomputed in clahe_cache
+                A.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), p=1.0),
+            ], p=0.2),
+            A.CoarseDropout(
+                max_holes=4, max_height=32, max_width=32,
+                min_holes=1, min_height=8, min_width=8,
+                fill_value=0, p=0.15
+            ),
+        ]
     else:
         aug_transforms = []
     

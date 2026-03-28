@@ -40,18 +40,18 @@ def parse_args():
 
 
 def find_latest_patientwise_dir() -> Path:
-    root = project_root / "ml" / "models" / "new checkpoints"
+    root = project_root / "ml" / "models" / "new checkpoints fix"
     if not root.exists():
         raise FileNotFoundError(f"Checkpoint root not found: {root}")
 
     candidates = [
         p for p in root.iterdir()
-        if p.is_dir() and "efficientnet_b0_performer_full_dataset_15class_patientwise_old" in p.name
+        if p.is_dir() and "efficientnet_b0_performer_full_dataset_14class_v2" in p.name
     ]
 
     if not candidates:
         raise FileNotFoundError(
-            "No patientwise checkpoint directories found under ml/models/new checkpoints"
+            "No patientwise checkpoint directories found under ml/models/new checkpoints fix"
         )
 
     return max(candidates, key=lambda p: p.stat().st_mtime)
@@ -59,7 +59,7 @@ def find_latest_patientwise_dir() -> Path:
 
 def load_history(checkpoint_dir: Path) -> dict:
     """Load history from training_history.json or fallback to checkpoint['history']."""
-    history_file = checkpoint_dir / "training_history.json"
+    history_file = checkpoint_dir / "training_history2.json"
     if history_file.exists():
         with open(history_file, "r", encoding="utf-8") as f:
             history = json.load(f)
@@ -169,7 +169,7 @@ def plot_curves(history: dict, save_dir: Path):
     ax_loss.legend()
     fig_loss.tight_layout()
 
-    loss_path = save_dir / "patientwise_loss_curves.png"
+    loss_path = save_dir / "patientwise_loss_curves_fix.png"
     fig_loss.savefig(loss_path, dpi=300, bbox_inches="tight")
     plt.close(fig_loss)
 

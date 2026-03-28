@@ -27,13 +27,13 @@ from ml.data.preprocessing import get_medical_transforms
 from ml.models.student_model import create_student_model
 
 # Fixed configuration
-CHECKPOINT_PATH = project_root / "ml/models/new checkpoints 14/efficientnet_b0_performer_full_dataset_14class_patientwise_lol/best_checkpoint.pth"
+CHECKPOINT_PATH = project_root / "ml/models/new checkpoints fix/efficientnet_b0_performer_full_dataset_14class_v2/best_checkpoint.pth"
 SPLIT_CSV_PATH = project_root / "data/splits/test_df.csv"
 CLAHE_CACHE_DIR = project_root / "data/clahe_cache"
 MODEL_NAME = "efficientnet_b0_performer"
 BATCH_SIZE = 64
 NUM_WORKERS = 4
-THRESHOLDS_PATH_14 = project_root / "scripts/optimal_thresholds14.json"
+THRESHOLDS_PATH_14 = project_root / "scripts/optimal_thresholds14_fixed_v2.json"
 OUT_DIR = project_root / "experiments"
 
 
@@ -151,7 +151,7 @@ def main():
     }
 
     OUT_DIR.mkdir(exist_ok=True)
-    out_file = OUT_DIR / "subset_hamming14_best_checkpoint_test.json"
+    out_file = OUT_DIR / "subset_hamming14_fixed_v2.json"
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
 

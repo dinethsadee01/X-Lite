@@ -1,7 +1,7 @@
 """
-Phase 1 Baseline Visuals (No KD)
-================================
-Generates charts for the 15-class baseline with optimized thresholds.
+Phase 1 Baseline Visuals
+========================
+Generates charts for the 14-class model with optimized thresholds.
 
 Outputs (results/):
 - phase1_auc_per_disease.png
@@ -20,15 +20,15 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-results_dir = project_root / "results"
+results_dir = project_root / "results_fixed"
 results_dir.mkdir(parents=True, exist_ok=True)
 
-metrics_path = project_root / "experiments" / "test_results_15class_optimized_lol.json"
-thresholds_path = project_root / "scripts" / "optimal_thresholds.json"
+metrics_path = project_root / "experiments" / "test_results_14class_v2.json"
+thresholds_path = project_root / "scripts" / "optimal_thresholds14_fixed_v2.json"
 
 CHECKPOINT_PATH = (
     project_root
-    / "ml/models/new checkpoints/efficientnet_b0_performer_full_dataset_15class_patientwise_lol/best_checkpoint.pth"
+    / "ml/models/new checkpoints fix/efficientnet_b0_performer_full_dataset_14class_v2/best_checkpoint.pth"
 )
 
 
@@ -46,12 +46,12 @@ def plot_auc_per_disease(metrics):
 
     plt.figure(figsize=(12, 6))
     plt.bar(diseases, aucs, color="#1f77b4")
-    plt.title("Test AUC per Disease (15-class baseline)")
+    plt.title("Test AUC per Disease (14-class)")
     plt.ylabel("AUC")
     plt.ylim(0.0, 1.0)
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_auc_per_disease_lol.png", dpi=200)
+    plt.savefig(results_dir / "phase1_auc_per_disease_v2.png", dpi=200)
     plt.close()
 
 
@@ -72,7 +72,7 @@ def plot_f1_default_vs_optimal(metrics):
     plt.xticks(x, diseases, rotation=45, ha="right")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_f1_default_vs_optimal_lol.png", dpi=200)
+    plt.savefig(results_dir / "phase1_f1_default_vs_optimal_v2.png", dpi=200)
     plt.close()
 
 
@@ -87,7 +87,7 @@ def plot_thresholds(thresholds):
     plt.ylim(0.0, 1.0)
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_thresholds_lol.png", dpi=200)
+    plt.savefig(results_dir / "phase1_thresholds_v2.png", dpi=200)
     plt.close()
 
 
@@ -110,7 +110,7 @@ def plot_macro_metrics(metrics):
     plt.xticks(x, labels)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_macro_metrics_lol.png", dpi=200)
+    plt.savefig(results_dir / "phase1_macro_metrics_v2.png", dpi=200)
     plt.close()
 
 
@@ -122,14 +122,14 @@ def get_test_predictions():
     from ml.models.student_model import create_student_model
     from ml.data.loader import ChestXrayDataset
     from ml.data.preprocessing import get_medical_transforms
-    from config.disease_labels import DISEASE_LABELS, NUM_CLASSES
+    from config.disease_labels14 import DISEASE_LABELS14, NUM_CLASSES14
     from torch.utils.data import DataLoader
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
     # Load model
-    model = create_student_model("efficientnet_b0_performer", num_classes=NUM_CLASSES, pretrained=False)
+    model = create_student_model("efficientnet_b0_performer", num_classes=NUM_CLASSES14, pretrained=False)
     checkpoint = torch.load(CHECKPOINT_PATH, map_location=device, weights_only=False)
     if "student_state_dict" in checkpoint:
         model.load_state_dict(checkpoint["student_state_dict"])
@@ -149,7 +149,8 @@ def get_test_predictions():
         test_df = test_df.rename(columns={"Image Index": "image_id", "Finding Labels": "labels"})
 
     val_transform = get_medical_transforms(use_clahe=False, use_denoising=False)
-    test_dataset = ChestXrayDataset(str(clahe_cache_dir), test_df, transform=val_transform, is_training=False)
+    test_dataset = ChestXrayDataset(str(clahe_cache_dir), test_df, transform=val_transform, is_training=False,
+                                     num_classes=NUM_CLASSES14, disease_labels=DISEASE_LABELS14)
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
 
     all_preds, all_targets = [], []
@@ -164,7 +165,7 @@ def get_test_predictions():
     preds = np.concatenate(all_preds, axis=0)
     targets = np.concatenate(all_targets, axis=0)
     print(f"✓ Inference complete on {len(targets)} samples")
-    return preds, targets, DISEASE_LABELS
+    return preds, targets, DISEASE_LABELS14
 
 
 def plot_roc_curves():
@@ -230,13 +231,13 @@ def plot_roc_curves():
         axes[k].set_visible(False)
 
     fig.suptitle(
-        "Phase 1 AUC-ROC Curves — EfficientNet-B0 Performer (Best Checkpoint)\nTest Set (15 Classes)",
+        "Phase 1 AUC-ROC Curves — EfficientNet-B0 Performer (Best Checkpoint)\nTest Set (14 Classes)",
         fontsize=13, fontweight="bold", y=1.01,
     )
     plt.tight_layout()
-    plt.savefig(results_dir / "phase1_roc_curves_lol.png", dpi=200, bbox_inches="tight")
+    plt.savefig(results_dir / "phase1_roc_curves_fixed.png", dpi=200, bbox_inches="tight")
     plt.close()
-    print("✓ Saved: results/phase1_roc_curves_lol.png")
+    print("✓ Saved: results/phase1_roc_curves_fixed.png")
 
 
 def main():
