@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-03-27T20:39:33.251311",
+  "checkpoint": "C:\\Users\\User\\Sadeepa\\X-Lite\\ml\\models\\new checkpoints\\efficientnet_b0_performer_full_dataset_15class_patientwise_lol\\best_checkpoint.pth",
+  "thresholds_file": "C:\\Users\\User\\Sadeepa\\X-Lite\\scripts\\optimal_thresholds.json",
+  "split_csv": "C:\\Users\\User\\Sadeepa\\X-Lite\\data\\splits\\test_df.csv",
+  "clahe_cache": "C:\\Users\\User\\Sadeepa\\X-Lite\\data\\clahe_cache",
+  "num_samples": 21845,
+  "macro_precision_from_cm": 0.35176412113674116,
+  "macro_recall_from_cm": 0.414803622330556,
+  "macro_f1_from_cm": 0.37659340527924967,
+  "macro_accuracy_from_cm": 0.9209857328145267,
+  "outputs": {
+    "combined_plot": "C:\\Users\\User\\Sadeepa\\X-Lite\\experiments\\confusion_matrices\\confusion_matrices_grid.png",
+    "per_class_dir": "C:\\Users\\User\\Sadeepa\\X-Lite\\experiments\\confusion_matrices\\per_class",
+    "summary_csv": "C:\\Users\\User\\Sadeepa\\X-Lite\\experiments\\confusion_matrices\\confusion_matrix_summary.csv"
+  }
+}
