@@ -50,16 +50,13 @@ X-Lite/
 ├── config/              # Configuration files (Python)
 ├── ml/                  # Machine learning pipeline
 │   ├── data/           # Data loading & preprocessing
-│   ├── models/         # Model architectures (student & teacher)
-│   ├── training/       # Training & knowledge distillation
-│   ├── inference/      # Prediction & explainability
-│   └── evaluation/     # Metrics & validation
+│   ├── models/          # Model architectures (student & teacher)
+│   └── training/        # Training & knowledge distillation
 ├── backend/            # FastAPI backend server
 │   ├── app.py         # Main FastAPI application
 │   ├── routes/        # API endpoints
 │   └── services/      # Business logic
 ├── frontend/           # React frontend
-├── notebooks/          # Jupyter notebooks for experiments
 ├── scripts/            # Utility scripts for training, eval, visualization
 ├── data/              # Dataset folder (images, splits, cache)
 ├── experiments/       # Logs, results, checkpoints
@@ -151,56 +148,36 @@ npm start
 
 Then open `http://localhost:3000` in your browser to upload and analyze chest X-rays.
 
-### Test with Pre-trained Model
+### Current Model Entry Point
 
-```bash
-# Verify the model works
-python scripts/verify_predictions.py
-```
+The repository snapshot includes the improved training entry point below. The older verification helper is not part of this checkout.
 
 ## 📈 Training Pipeline
 
-### 1. Download Dataset
+### 1. Dataset Preparation
+
+Dataset download and preprocessing helpers are not included in this snapshot. Use the prebuilt data artifacts in `data/` or your own preparation workflow.
+
+### 2. Train the Current Improved Model
 
 ```bash
-python scripts/download_chestxray14.py
+python scripts/train_improved.py
 ```
 
-### 2. Preprocess Images (CLAHE Enhancement)
+### 3. Archived Script References
 
-```bash
-python scripts/precompute_clahe.py
-```
+The following commands were used in earlier project iterations and are not present in this repository snapshot:
 
-### 3. Train Baseline Model
+- `python scripts/verify_predictions.py`
+- `python scripts/download_chestxray14.py`
+- `python scripts/precompute_clahe.py`
+- `python scripts/train_baseline.py --student_model efficientnet_b0_performer`
+- `python scripts/train_kd_with_xrv.py --student_model efficientnet_b0_performer`
+- `python scripts/evaluate_test_set.py --student_model efficientnet_b0_performer`
+- `python scripts/cross_validation_analysis.py`
+- `python scripts/generate_kd_visualizations.py`
 
-```bash
-python scripts/train_baseline.py --student_model efficientnet_b0_performer
-```
-
-### 4. Knowledge Distillation Training
-
-```bash
-python scripts/train_kd_with_xrv.py --student_model efficientnet_b0_performer
-```
-
-### 5. Evaluate on Test Set
-
-```bash
-python scripts/evaluate_test_set.py --student_model efficientnet_b0_performer
-```
-
-### 6. Cross-Validation Analysis
-
-```bash
-python scripts/cross_validation_analysis.py
-```
-
-### 7. Generate Visualizations
-
-```bash
-python scripts/generate_kd_visualizations.py
-```
+Use `python scripts/train_improved.py` for the currently available training entry point.
 
 ## 🌐 Web Application
 
