@@ -1,0 +1,54 @@
+%%  X-Lite Activity Diagram
+%%  End-to-end user workflow: Login → Upload → Diagnose → View Results → Download Report
+
+flowchart TD
+    START(["Start"]) --> A["User Opens X-Lite Web App"]
+    A --> B{"Authenticated?"}
+
+    B -->|No| C["Display Login Page"]
+    C --> D["Enter Credentials"]
+    D --> E{"Valid Credentials?"}
+    E -->|No| F["Show Error Message"]
+    F --> C
+    E -->|Yes| G["Issue JWT Token"]
+    G --> H["Store Token in Session"]
+
+    B -->|Yes| H
+    H --> I["Navigate to Home Page"]
+
+    I --> J["Upload Chest X-Ray<br/>Drag-Drop or Click"]
+    J --> K{"Valid Image?<br/>PNG/JPEG Check"}
+    K -->|No| L["Show Validation Error"]
+    L --> J
+    K -->|Yes| M["Display Image Preview<br/>Show Checkmark"]
+
+    M --> N["Click Run Diagnostics"]
+    N --> O["Show Loading Spinner"]
+
+    O --> P["Backend: Save Image"]
+    P --> Q["Apply CLAHE<br/>Contrast Enhancement"]
+    Q --> R["Resize to 224x224"]
+    R --> S["Normalize with<br/>ImageNet Stats"]
+    S --> T["Model Inference<br/>EfficientNet-B0 + Performer"]
+    T --> U["Apply Sigmoid<br/>Get 14 Probabilities"]
+    U --> V["Apply Per-Class<br/>Optimised Thresholds"]
+    V --> W["Generate Grad-CAM<br/>Heatmap for Top Class"]
+    W --> X["Overlay Heatmap<br/>on Original X-Ray"]
+
+    X --> Y["Return JSON Response<br/>Predictions + Heatmap Path"]
+
+    Y --> Z["Display Results Page"]
+    Z --> AA["Show Per-Disease<br/>Probabilities with<br/>Risk Level Indicators"]
+    Z --> AB["Show Grad-CAM<br/>Heatmap Overlay"]
+
+    AA --> AC{"Download Report?"}
+    AB --> AC
+
+    AC -->|Yes| AD["Generate PDF Report<br/>via ReportLab"]
+    AD --> AE["Include: X-Ray, Heatmap,<br/>Scores, Timestamp,<br/>Medical Disclaimer"]
+    AE --> AF["Download PDF"]
+    AF --> AG{"New Diagnosis?"}
+
+    AC -->|No| AG
+    AG -->|Yes| I
+    AG -->|No| END(["End"])
