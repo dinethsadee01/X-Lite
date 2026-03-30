@@ -1,2 +1,0 @@
-checkpoint,architecture,num_classes,threshold,f1_macro,precision_macro,recall_macro,f1_micro,precision_micro,recall_micro,auc_macro
-scripts\dense121\checkpoints_augment_10000_unfreeze\model_epoch_4_0.7446.pth,efficientnet_b0_performer,15,0.5,0.15456551912187189,0.13307405102811526,0.8010323700966335,0.15954796831182666,0.09324982602644398,0.552018212698298,0.7476439992200833
