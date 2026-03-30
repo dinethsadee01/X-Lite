@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-03-30T07:43:04.473459",
+  "test_image": "20260328_135340_30c37aefb5e1.png",
+  "system_info": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "cpu_name": "AMD64",
+    "cpu_cores_physical": 20,
+    "cpu_cores_logical": 28,
+    "ram_total_gb": 63.74,
+    "python_version": "3.14.2",
+    "pytorch_version": "2.10.0+cpu",
+    "cuda_available": false
+  },
+  "model_info": {
+    "file_size_bytes": 16576315,
+    "file_size_mb": 15.81,
+    "total_parameters": 4059562,
+    "trainable_parameters": 4059562,
+    "total_parameters_millions": 4.06
+  },
+  "benchmarks": {
+    "cpu": {
+      "device": "CPU",
+      "device_type": "cpu",
+      "model_load_time_ms": 50.46,
+      "preprocessing": {
+        "mean_ms": 6.53,
+        "std_ms": 1.13,
+        "min_ms": 5.51,
+        "max_ms": 11.59
+      },
+      "inference_only": {
+        "mean_ms": 11.89,
+        "std_ms": 2.26,
+        "min_ms": 8.11,
+        "max_ms": 14.71
+      },
+      "gradcam": {
+        "mean_ms": 41.17,
+        "std_ms": 9.07,
+        "min_ms": 31.05,
+        "max_ms": 80.99
+      },
+      "full_pipeline": {
+        "mean_ms": 58.45,
+        "std_ms": 5.89,
+        "min_ms": 46.09,
+        "max_ms": 69.3
+      },
+      "memory": {
+        "ram_before_mb": 450.62,
+        "ram_after_mb": 608.14,
+        "ram_delta_mb": 157.52
+      },
+      "meets_nfr03_2s_target": true,
+      "num_warmup_runs": 5,
+      "num_benchmark_runs": 30
+    }
+  }
+}
