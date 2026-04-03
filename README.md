@@ -72,7 +72,11 @@ cd X-Lite
 
 # Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Activate virtual environment
+# PowerShell: .\.venv\Scripts\Activate.ps1
+# CMD: .venv\Scripts\activate.bat
+# Git Bash: source .venv/Scripts/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -192,6 +196,7 @@ python backend/app.py
 ```
 
 The API will be available at:
+
 - Main endpoint: `http://localhost:8000`
 - API docs (Swagger): `http://localhost:8000/api/docs`
 - Health check: `http://localhost:8000/api/health`
@@ -240,12 +245,14 @@ This project is for academic research purposes.
 **Status**: ✅ Phase 4 Complete (February 2026)
 
 **Final Model**: EfficientNet-B0 with Performer Attention + Knowledge Distillation
+
 - **Test AUC**: 0.8390 (on 16,818 unseen images)
 - **Validation AUC**: 0.8446
 - **Baseline AUC**: 0.8351 (no distillation)
 - **Training Efficiency**: 3× faster convergence (15 vs 50 epochs)
 
 **Deliverables**:
+
 - ✅ Trained student model with knowledge distillation
 - ✅ Test set evaluation on unseen data
 - ✅ Cross-validation analysis
