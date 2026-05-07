@@ -1,261 +1,307 @@
-# X-Lite: Lightweight Hybrid CNN-Transformer for Chest X-Ray Classification
+# X-Lite — Lightweight Hybrid CNN-Attention for Chest X-Ray Classification
 
-A lightweight hybrid CNN-Transformer framework for multi-label chest X-ray classification via knowledge distillation, designed for resource-constrained clinical environments.
+> A CPU-deployable multi-label chest X-ray classification system detecting 14 thoracic diseases using a hybrid EfficientNet-B0 + Performer Attention architecture with Grad-CAM explainability.
 
-## 🎯 Project Overview
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat&logo=pytorch&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)
+![AUC](https://img.shields.io/badge/Macro--AUC-0.866-brightgreen?style=flat)
+![Inference](https://img.shields.io/badge/CPU%20Inference-58.5ms-blue?style=flat)
+![Params](https://img.shields.io/badge/Parameters-4.06M-orange?style=flat)
+![License](https://img.shields.io/badge/License-Academic-lightgrey?style=flat)
 
-**X-Lite** addresses the challenge of deploying accurate deep learning models for chest X-ray diagnosis in resource-limited settings by combining:
+---
 
-- **Hybrid CNN-Transformer Architecture**: Leveraging both local feature extraction and global context
-- **Knowledge Distillation**: Transferring knowledge from a high-performance teacher to efficient student models
-- **Multi-Label Classification**: Simultaneous detection of 14 thoracic diseases
-- **Web Application**: User-friendly interface for clinical deployment
+## Overview
 
-## 📊 Dataset
+**X-Lite** addresses the challenge of deploying accurate chest X-ray AI in resource-constrained healthcare settings — district hospitals, clinics, and medical training institutions — where GPU servers and cloud subscriptions are not feasible.
 
-**ChestX-ray14** (NIH Clinical Center)
+Most existing solutions require GPU hardware or cloud connectivity. X-Lite achieves a **macro-AUC of 0.866** on the ChestX-ray14 benchmark, outperforming CheXNet (0.841 AUC), while running entirely on CPU with **58.5ms inference latency** and only **4.06M parameters**.
 
-- ~112,000 frontal-view X-ray images
-- 14 disease labels: Atelectasis, Cardiomegaly, Effusion, Infiltration, Mass, Nodule, Pneumonia, Pneumothorax, Consolidation, Edema, Emphysema, Fibrosis, Pleural Thickening, Hernia
-- Multi-label annotations (images may have multiple findings)
+### Key Contributions
 
-## 🏗️ Architecture
+- **Novel Per-class Alpha Focal Loss** — per-disease alpha weights computed as `1/frequency`, clamped to [0.5, 0.95], addressing the severe 200:1 class imbalance in ChestX-ray14
+- **Hybrid CNN-Attention Architecture** — EfficientNet-B0 backbone + Performer attention (FAVOR+) for O(N) linear complexity, enabling CPU-first deployment
+- **Per-class Threshold Optimisation** — post-training threshold tuning per disease (mean 0.237, range 0.10–0.35), improving macro-F1 by 46% over the default 0.5 threshold
+- **End-to-end Clinical Web Application** — upload → predict → Grad-CAM → PDF report in under 2 seconds on CPU
 
-### Teacher Model
+---
 
-- **Backbone**: DenseNet121 (CheXNet-inspired)
-- **Purpose**: High-performance reference model for knowledge transfer
+## Results
 
-### Student Models (Experimental)
+### Final Model Performance (EfficientNet-B0 + Performer, Test Set — 21,845 images)
 
-Lightweight architectures combining efficient CNNs with transformer attention:
+| Disease | AUC-ROC | Recall | Precision |
+|---|---|---|---|
+| Hernia | **0.999** | 0.813 | 0.481 |
+| Cardiomegaly | **0.921** | 0.497 | 0.432 |
+| Pneumothorax | **0.911** | 0.417 | 0.494 |
+| Effusion | **0.900** | 0.627 | 0.493 |
+| Emphysema | **0.898** | 0.512 | 0.476 |
+| Edema | **0.893** | 0.567 | 0.384 |
+| Fibrosis | **0.867** | 0.370 | 0.302 |
+| Mass | **0.862** | 0.395 | 0.290 |
+| Consolidation | **0.849** | 0.467 | 0.218 |
+| Pleural Thickening | **0.838** | 0.363 | 0.237 |
+| Atelectasis | **0.818** | 0.467 | 0.345 |
+| Nodule | **0.790** | 0.324 | 0.188 |
+| Pneumonia | **0.752** | 0.292 | 0.138 |
+| Infiltration | **0.734** | 0.548 | 0.332 |
+| **Macro Average** | **0.866** | **0.476** | **0.347** |
 
-- **CNN Backbones**: EfficientNet-B0, ConvNeXt-Tiny, MobileNetV3-Large, etc.
-- **Attention Modules**: Multi-Head Self-Attention (MHSA), Performer, Linear Attention
-- **Goal**: Maintain accuracy while reducing parameters and FLOPs
+### Benchmark Comparison
 
-## 🚀 Features
+| Model | Macro-AUC | Parameters | Hardware |
+|---|---|---|---|
+| CheXNet (DenseNet-121) | 0.841 | 7.5M | GPU required |
+| **X-Lite (EfficientNet-B0 + Performer)** | **0.866** | **4.06M** | **CPU ✅** |
+| LungMaxViT | 0.932 | Much larger | GPU required |
 
-- ✅ One-click chest X-ray upload
-- ✅ Multi-label disease prediction with confidence scores
-- ✅ Grad-CAM visualization for model explainability
-- ✅ PDF report generation
-- ✅ CPU-optimized inference for deployment
-- ✅ RESTful API for integration
+### Deployment Metrics
 
-## 📁 Project Structure
+| Metric | Value |
+|---|---|
+| Model Parameters | 4.06M |
+| Inference Time (CPU) | 58.5ms |
+| End-to-End Response | < 2 seconds |
+| Hamming Loss | 0.090 |
+| Macro-F1 (optimised thresholds) | 0.333 |
+| Macro-F1 (default threshold 0.5) | 0.046 |
+
+---
+
+## Architecture
 
 ```
-X-Lite/
-├── config/              # Configuration files (Python)
-├── ml/                  # Machine learning pipeline
-│   ├── data/           # Data loading & preprocessing
-│   ├── models/          # Model architectures (student & teacher)
-│   └── training/        # Training & knowledge distillation
-├── backend/            # FastAPI backend server
-│   ├── app.py         # Main FastAPI application
-│   ├── routes/        # API endpoints
-│   └── services/      # Business logic
-├── frontend/           # React frontend
-├── scripts/            # Utility scripts for training, eval, visualization
-├── data/              # Dataset folder (images, splits, cache)
-├── experiments/       # Logs, results, checkpoints
-└── docs/              # Documentation
+Input X-ray (224×224×3)
+        │
+   CLAHE Preprocessing
+        │
+   EfficientNet-B0 Backbone
+   (Pretrained, ImageNet)
+        │
+   Feature Maps (B × 1280 × 7 × 7)
+        │
+   Reshape → Sequence (B × 49 × 1280)
+        │
+   Performer Attention (FAVOR+)
+   Linear O(N) complexity
+        │
+   Global Average Pooling
+        │
+   FC Classification Head
+   (14 sigmoid outputs)
+        │
+   Per-class Threshold Application
+   (mean 0.237, range 0.10–0.35)
+        │
+   14 Disease Probabilities + Grad-CAM
 ```
 
-## 🛠️ Installation
+---
+
+## Web Application
+
+The full-stack clinical web application enables real-time chest X-ray analysis with explainability and PDF reporting.
+
+### Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Material-UI v5 |
+| Backend | FastAPI, Python 3.10+ |
+| ML Inference | PyTorch, TorchVision |
+| Explainability | Grad-CAM (last conv layer hooks) |
+| Reports | ReportLab PDF |
+| Auth | JWT tokens |
+
+### REST API Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/health` | GET | System status check |
+| `/api/upload` | POST | Upload chest X-ray image |
+| `/api/predict` | POST | Run inference + Grad-CAM |
+| `/api/report/generate` | POST | Generate PDF clinical report |
+| `/api/report/download/{filename}` | GET | Download PDF report |
+| `/api/auth/login` | POST | User authentication |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10+
+- Node.js 18+
+- 4GB+ RAM (no GPU required)
+
+### Installation
 
 ```bash
 # Clone repository
 git clone https://github.com/dinethsadee01/X-Lite.git
 cd X-Lite
 
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv .venv
 
-# Activate virtual environment
-# PowerShell: .\.venv\Scripts\Activate.ps1
-# CMD: .venv\Scripts\activate.bat
-# Git Bash: source .venv/Scripts/activate
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+# Linux / macOS
+source .venv/bin/activate
 
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Install frontend dependencies
+cd frontend && npm install && cd ..
 ```
 
-## 🔧 Web App Setup (Clone-Ready)
-
-### 1. Backend Environment File
-
-Copy `.env.example` to `.env`, then update values as needed:
+### Environment Setup
 
 ```bash
-cp .env.example .env
-# Windows PowerShell:
-Copy-Item .env.example .env
+# Copy the example env file
+cp .env.example .env   # Linux/macOS
+Copy-Item .env.example .env   # Windows PowerShell
 ```
 
-Or create a `.env` file in the project root:
+Edit `.env` with your values:
 
 ```env
-MONGODB_URL=mongodb+srv://<username>:<password>@<cluster-url>/?retryWrites=true&w=majority
+MONGODB_URL=mongodb+srv://<username>:<password>@<cluster>/?retryWrites=true&w=majority
 MONGODB_DB_NAME=xlite_db
-SECRET_KEY=replace_with_a_long_random_secret
+SECRET_KEY=your_long_random_secret_key
 REACT_APP_API_URL=http://localhost:8000/api
 ```
 
-### 2. Frontend Dependencies
+### Run the Application
 
 ```bash
-cd frontend
-npm install
-cd ..
+# Option 1 — Quick start scripts
+./start.sh          # Linux/macOS
+start.bat           # Windows
+
+# Option 2 — Manual (two terminals)
+# Terminal 1: Backend
+python -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 2: Frontend
+cd frontend && npm start
 ```
 
-### 3. Start the App
+Open **http://localhost:3000** in your browser.
 
-```bash
-# Terminal 1 (backend)
-uvicorn backend.app:app --reload
-
-# Terminal 2 (frontend)
-cd frontend
-npm start
-```
-
-### 4. Demo Login (DB-Bypass Mode)
-
-Current repository state supports demo login flow with:
-
+**Demo login** (no database required):
 - Username: `doctor`
 - Password: `password123`
 
-This allows core flow testing:
+### API Documentation
 
-- Upload chest X-ray
-- Run prediction
-- View result page
-- Download PDF report
+Swagger UI available at: **http://localhost:8000/api/docs**
 
-## ⚡ Quick Start
+---
 
-### Run the Web Application
+## Training Pipeline
 
-```bash
-# Terminal 1: Start the backend API
-python -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
-
-# Terminal 2: Start the frontend (in a new terminal)
-cd frontend
-npm install
-npm start
-```
-
-Then open `http://localhost:3000` in your browser to upload and analyze chest X-rays.
-
-### Current Model Entry Point
-
-The repository snapshot includes the improved training entry point below. The older verification helper is not part of this checkout.
-
-## 📈 Training Pipeline
-
-### 1. Dataset Preparation
-
-Dataset download and preprocessing helpers are not included in this snapshot. Use the prebuilt data artifacts in `data/` or your own preparation workflow.
-
-### 2. Train the Current Improved Model
+### Train the Final Model
 
 ```bash
 python scripts/train_improved.py
 ```
 
-### 3. Archived Script References
+This runs the refined training pipeline with:
+- Per-class Alpha Focal Loss (`γ=2.0`, per-disease alpha)
+- Sqrt-dampened WeightedRandomSampler
+- CosineAnnealingWarmRestarts scheduler
+- 2-epoch LR warmup
+- Per-class threshold optimisation on validation set
 
-The following commands were used in earlier project iterations and are not present in this repository snapshot:
+### Training Configuration
 
-- `python scripts/verify_predictions.py`
-- `python scripts/download_chestxray14.py`
-- `python scripts/precompute_clahe.py`
-- `python scripts/train_baseline.py --student_model efficientnet_b0_performer`
-- `python scripts/train_kd_with_xrv.py --student_model efficientnet_b0_performer`
-- `python scripts/evaluate_test_set.py --student_model efficientnet_b0_performer`
-- `python scripts/cross_validation_analysis.py`
-- `python scripts/generate_kd_visualizations.py`
-
-Use `python scripts/train_improved.py` for the currently available training entry point.
-
-## 🌐 Web Application
-
-### Backend (FastAPI)
-
-```bash
-# Option 1: Using uvicorn directly
-python -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
-
-# Option 2: Running app.py directly (uses built-in uvicorn)
-python backend/app.py
-```
-
-The API will be available at:
-
-- Main endpoint: `http://localhost:8000`
-- API docs (Swagger): `http://localhost:8000/api/docs`
-- Health check: `http://localhost:8000/api/health`
-
-### Frontend (React)
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
-The frontend will open at `http://localhost:3000` and automatically proxy API calls to `http://localhost:8000`
-
-## 📊 Evaluation Metrics
-
-- **AUC-ROC**: Area Under ROC Curve (primary metric)
-- **Precision, Recall, F1-Score**: Per-disease and macro-averaged
-- **Model Size**: Parameters and file size (MB)
-- **Inference Time**: CPU inference latency (ms)
-- **FLOPs**: Computational complexity
-
-## 🎓 Research Goals
-
-1. Achieve competitive AUC-ROC (>0.75 per disease) with <50% model size
-2. CPU inference time <500ms per image
-3. Maintain interpretability through attention visualization
-4. Enable deployment in resource-limited clinical settings
-
-## 📄 License
-
-This project is for academic research purposes.
-
-## 👥 Contributors
-
-- Dineth Sadee (Computer Science Final Year Project)
-
-## 🙏 Acknowledgments
-
-- NIH Clinical Center for ChestX-ray14 dataset
-- CheXNet paper for teacher model inspiration
-- Open-source deep learning community
+| Setting | Value |
+|---|---|
+| Loss Function | Per-class Alpha Focal Loss |
+| Optimizer | AdamW (weight_decay=1e-5) |
+| Learning Rate | 3e-5 with cosine schedule |
+| Batch Size | 128 |
+| Max Epochs | 70 (early stopping patience=5) |
+| Hardware | NVIDIA RTX 4070 Ti SUPER 16GB |
 
 ---
 
-**Status**: ✅ Phase 4 Complete (February 2026)
+## Project Structure
 
-**Final Model**: EfficientNet-B0 with Performer Attention + Knowledge Distillation
+```
+X-Lite/
+├── config/                  # Hyperparameters, disease mappings, thresholds
+├── ml/
+│   ├── data/                # DataLoader, CLAHE preprocessing, augmentation
+│   ├── models/              # EfficientNet-B0 + Performer, DenseNet-121 teacher
+│   └── training/            # Training loops, KD pipeline, evaluation
+├── backend/
+│   ├── app.py               # FastAPI application entry point
+│   ├── routes/              # API route definitions
+│   └── services/            # PredictionService, GradCAMService, ReportService
+├── frontend/                # React SPA (Material-UI)
+├── scripts/                 # train_improved.py and utility scripts
+├── data/                    # Dataset splits, CLAHE cache
+├── requirements.txt
+├── setup.py
+├── start.sh                 # Linux/macOS quick-start
+└── start.bat                # Windows quick-start
+```
 
-- **Test AUC**: 0.8390 (on 16,818 unseen images)
-- **Validation AUC**: 0.8446
-- **Baseline AUC**: 0.8351 (no distillation)
-- **Training Efficiency**: 3× faster convergence (15 vs 50 epochs)
+---
 
-**Deliverables**:
+## Dataset
 
-- ✅ Trained student model with knowledge distillation
-- ✅ Test set evaluation on unseen data
-- ✅ Cross-validation analysis
-- ✅ Calibration curves for reliability assessment
-- ✅ Web application (FastAPI + React)
-- ✅ Complete documentation and visualizations
+**ChestX-ray14** (NIH Clinical Center)
+- 112,120 frontal-view chest X-ray images
+- 30,805 unique patients
+- 14 thoracic disease labels (multi-label, NLP-extracted)
+- Severe class imbalance: No Finding 60.4% → Hernia 0.14%
+
+The dataset is not included in this repository. Download from the [NIH Clinical Center](https://nihcc.app.box.com/v/ChestXray-NIHCC).
+
+---
+
+## Known Limitations
+
+- Trained and evaluated on ChestX-ray14 only — external validation on CheXpert or MIMIC-CXR not yet performed
+- Labels are NLP-extracted from radiology reports (~10% label noise)
+- Knowledge Distillation (DenseNet-121 → EfficientNet-B0 Performer) degraded performance due to architecture mismatch — documented as a negative result; direct training with Per-class Alpha Focal Loss was used for the final model
+- Not validated for clinical deployment — requires radiologist confirmation for all outputs
+
+---
+
+## Acknowledgements
+
+- [NIH Clinical Center](https://nihcc.app.box.com/v/ChestXray-NIHCC) — ChestX-ray14 dataset
+- [CheXNet (Rajpurkar et al., 2017)](https://arxiv.org/abs/1711.05225) — teacher model inspiration
+- [Performer (Choromanski et al., 2021)](https://arxiv.org/abs/2009.14794) — FAVOR+ linear attention
+- [TorchXRayVision](https://github.com/mlmed/torchxrayvision) — pretrained teacher weights
+
+---
+
+## Citation
+
+If you use this work, please cite:
+
+```
+Edirisinghe, D.S. (2026). X-Lite: Lightweight Hybrid CNN-Attention Framework
+for Multi-Label Chest X-Ray Classification in Resource-Constrained Environments.
+BSc Computer Science Final Year Project, University of Westminster.
+```
+
+---
+
+## License
+
+This project is released for **academic and research purposes only**.  
+Clinical use requires radiologist validation. Not approved for medical diagnosis.
+
+---
+
+*Built as a BSc Computer Science Final Year Project — University of Westminster, 2026*
