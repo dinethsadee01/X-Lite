@@ -305,3 +305,17 @@ Clinical use requires radiologist validation. Not approved for medical diagnosis
 ---
 
 *Built as a BSc Computer Science Final Year Project — University of Westminster, 2026*
+
+---
+
+<div align="center">
+
+**Developed with ❤️ by the Dineth**
+
+If you liked this project or found it helpful, consider supporting the development!
+
+<a href="https://buymeacoffee.com/grandwarlock" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+[⬆ Back to Top](#)
+
+</div>
